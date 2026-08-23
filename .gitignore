@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.DS_Store
+
+# Experiment outputs: regenerable, sometimes large.
+results/
+runs/
+*.duckdb
+*.parquet
+*.jsonl
+
+# Frozen tool corpus is versioned; raw harvest dumps are not.
+data/raw/
+.env

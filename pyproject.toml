@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hotset"
+version = "0.1.0"
+description = "Cache-aware tool router for MCP agents: admission control over prompt-prefix tool schemas"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2",     # typed tool schemas + span records
+    "tokenizers",      # exact token accounting, no model weights needed
+    "duckdb",          # run/metric store for sweeps
+    "pyyaml",          # experiment configs
+    "typer",           # CLI entrypoints
+]
+
+[project.optional-dependencies]
+# Backends are optional so the simulator + tests install lean and run in CI.
+dev = ["pytest", "pytest-cov", "ruff"]
+
+[tool.setuptools.packages.find]
+include = ["hotset*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
