@@ -15,3 +15,4 @@ runs/
 # Frozen tool corpus is versioned; raw harvest dumps are not.
 data/raw/
 .env
+.npm-cache/

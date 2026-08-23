@@ -34,7 +34,7 @@ async def harvest_server(spec: ServerSpec) -> list[Tool]:
         Tool(
             name=t.name,
             description=t.description or "",
-            input_schema=t.inputSchema or {},
+            input_schema=t.input_schema or {},
             server=spec.name,
         )
         for t in listed.tools
