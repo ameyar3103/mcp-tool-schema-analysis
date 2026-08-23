@@ -76,6 +76,29 @@ def parse_usage(payload: dict) -> CacheUsage:
     )
 
 
+def post(body: dict) -> dict:
+    """Raw Chat Completions call. Probes need byte-exact control over the body."""
+    req = urllib.request.Request(
+        _ENDPOINT,
+        data=json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {api_key()}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=180) as resp:
+        return json.loads(resp.read())
+
+
+def pinned_body(spec: ModelSpec, **overrides) -> dict:
+    """Request skeleton with the provider pin and reasoning already settled."""
+    return {
+        "model": spec.slug,
+        "max_tokens": 16,
+        "provider": {"only": [spec.provider], "allow_fallbacks": False},
+        "usage": {"include": True},
+        "reasoning": {"enabled": False},
+        **overrides,
+    }
+
+
 def complete(spec: ModelSpec, messages: list[dict], tools: list[dict] | None = None,
              session_id: str | None = None, max_tokens: int = 256,
              reasoning: bool = False) -> dict:
@@ -96,13 +119,4 @@ def complete(spec: ModelSpec, messages: list[dict], tools: list[dict] | None = N
     if session_id:
         body["session_id"] = session_id
 
-    req = urllib.request.Request(
-        _ENDPOINT,
-        data=json.dumps(body).encode(),
-        headers={
-            "Authorization": f"Bearer {api_key()}",
-            "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=180) as resp:
-        return json.loads(resp.read())
+    return post(body)

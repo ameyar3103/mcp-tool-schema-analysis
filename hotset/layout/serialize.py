@@ -48,3 +48,15 @@ def index_line(tool: Tool) -> str:
 def layer_a_index(tools: list[Tool]) -> str:
     """Layer A: every catalog tool, one line each, name-sorted so the block is order-stable."""
     return "\n".join(index_line(t) for t in sorted(tools, key=lambda t: t.name))
+
+
+def as_openai_tool(tool: Tool) -> dict:
+    """Chat Completions function spec. Key order is pinned: json.dumps preserves it."""
+    return {
+        "type": "function",
+        "function": {
+            "name": tool.name,
+            "description": tool.description,
+            "parameters": tool.input_schema or {"type": "object", "properties": {}},
+        },
+    }
