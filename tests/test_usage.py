@@ -44,3 +44,11 @@ def test_caching_beats_cold_at_steady_state():
     cold = CacheUsage(uncached_tokens=20_000, cached_tokens=0, write_tokens=0, output_tokens=0)
     warm = CacheUsage(uncached_tokens=0, cached_tokens=20_000, write_tokens=0, output_tokens=0)
     assert cold.cost_usd(spec) / warm.cost_usd(spec) == pytest.approx(spec.cost_ratio)
+
+
+def test_our_cost_model_reconciles_with_openrouter_bill():
+    """Guards against registry price drift: our arithmetic must match the vendor's."""
+    spec = MODELS["qwen-flash"]
+    usage = CacheUsage(uncached_tokens=19, cached_tokens=0, write_tokens=0,
+                       output_tokens=1, reported_cost_usd=7e-07)
+    assert usage.total_cost_usd(spec) == pytest.approx(usage.reported_cost_usd, rel=1e-6)

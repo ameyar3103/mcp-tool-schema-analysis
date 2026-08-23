@@ -13,6 +13,7 @@ class ModelSpec(BaseModel):
     uncached: float  # u in the break-even derivation
     cached: float  # c
     write: float  # cache-write premium, charged once per admission
+    completion: float  # output tokens; never cached
     min_cacheable_tokens: int  # below this the provider silently skips caching
     context_tokens: int
 
@@ -30,6 +31,7 @@ MODELS: dict[str, ModelSpec] = {
         uncached=0.030,
         cached=0.006,
         write=0.038,
+        completion=0.13,
         min_cacheable_tokens=1024,  # unverified; probe 1 measures the real floor
         context_tokens=1_000_000,
     ),
@@ -40,6 +42,7 @@ MODELS: dict[str, ModelSpec] = {
         uncached=1.00,
         cached=0.10,
         write=1.25,
+        completion=5.0,
         min_cacheable_tokens=4096,
         context_tokens=200_000,
     ),
@@ -49,6 +52,7 @@ MODELS: dict[str, ModelSpec] = {
         uncached=2.00,
         cached=0.20,
         write=2.50,
+        completion=10.0,
         min_cacheable_tokens=1024,
         context_tokens=1_000_000,
     ),

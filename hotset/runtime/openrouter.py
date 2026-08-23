@@ -5,12 +5,26 @@ from __future__ import annotations
 import json
 import os
 import urllib.request
+from pathlib import Path
 
 from pydantic import BaseModel
 
 from hotset.config import ModelSpec
 
 _ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
+
+def api_key() -> str:
+    """Environment first, then the gitignored .env at repo root."""
+    if key := os.environ.get("OPENROUTER_API_KEY"):
+        return key
+    if _ENV_FILE.exists():
+        for line in _ENV_FILE.read_text().splitlines():
+            name, _, value = line.partition("=")
+            if name.strip() == "OPENROUTER_API_KEY" and value.strip():
+                return value.strip()
+    raise RuntimeError(f"OPENROUTER_API_KEY not set; add it to {_ENV_FILE}")
 
 
 class CacheUsage(BaseModel):
@@ -20,6 +34,7 @@ class CacheUsage(BaseModel):
     cached_tokens: int  # served from cache, billed at the read rate
     write_tokens: int  # committed to cache, billed at the write premium
     output_tokens: int
+    reported_cost_usd: float = 0.0  # OpenRouter's own bill, for cross-checking cost_usd
 
     @property
     def prompt_tokens(self) -> int:
@@ -39,6 +54,10 @@ class CacheUsage(BaseModel):
             + self.write_tokens * spec.write
         ) / 1e6  # registry prices are per MTok
 
+    def total_cost_usd(self, spec: ModelSpec) -> float:
+        """Prompt plus completion. This is the cost-per-task figure."""
+        return self.cost_usd(spec) + self.output_tokens * spec.completion / 1e6
+
 
 def parse_usage(payload: dict) -> CacheUsage:
     """Pull cache accounting out of a Chat Completions response, tolerating absent fields."""
@@ -53,11 +72,13 @@ def parse_usage(payload: dict) -> CacheUsage:
         cached_tokens=cached,
         write_tokens=write,
         output_tokens=int(usage.get("completion_tokens") or 0),
+        reported_cost_usd=float(usage.get("cost") or 0.0),
     )
 
 
 def complete(spec: ModelSpec, messages: list[dict], tools: list[dict] | None = None,
-             session_id: str | None = None, max_tokens: int = 256) -> dict:
+             session_id: str | None = None, max_tokens: int = 256,
+             reasoning: bool = False) -> dict:
     """One Chat Completions call, hard-pinned to a single provider so the cache stays deterministic."""
     body = {
         "model": spec.slug,
@@ -66,6 +87,9 @@ def complete(spec: ModelSpec, messages: list[dict], tools: list[dict] | None = N
         # Pinning trades away failover for a cache that cannot silently move backends.
         "provider": {"only": [spec.provider], "allow_fallbacks": False},
         "usage": {"include": True},
+        # Off by default: reasoning tokens are never cached and add pure variance to
+        # cost and TTFT. Note exclude:true only hides them - it still bills them.
+        "reasoning": {"enabled": reasoning},
     }
     if tools:
         body["tools"] = tools
@@ -76,7 +100,7 @@ def complete(spec: ModelSpec, messages: list[dict], tools: list[dict] | None = N
         _ENDPOINT,
         data=json.dumps(body).encode(),
         headers={
-            "Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+            "Authorization": f"Bearer {api_key()}",
             "Content-Type": "application/json",
         },
     )
