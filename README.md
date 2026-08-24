@@ -9,21 +9,39 @@ block that earns its place, and a cold tail served on demand.
 
 ## The result
 
-On qwen-flash over a 300-tool catalog and 310 held-out turns
-([docs/pareto.md](docs/pareto.md)):
+Two findings, one positive and one negative. The negative one is about the thing this
+repo is named after.
+
+**Dropping every JSON Schema is free.** On Haiku over a 300-tool catalog and 310 held-out
+turns, `index-only` (tool names, no schemas) and `full-catalog` both score 175/310 lenient
+— 16 discordant pairs each way, **p = 1.0000**. An exact tie at 30% of the prompt tokens
+and 43% of the cost:
 
 | model | arm | lenient acc | prompt tok | $/turn |
 |---|---|---|---|---|
-| qwen-flash | **hotset** | **61.9%** | 12,357 | $0.000099 |
-| qwen-flash | full-catalog | 57.7% | 39,193 | $0.000258 |
-| haiku-4.5 | **index-only** | **56.5%** | 13,651 | $0.002599 |
+| haiku-4.5 | **index-only** | 56.5% | 13,651 | **$0.002599** |
 | haiku-4.5 | full-catalog | 56.5% | 45,681 | $0.006011 |
 
-**3.2× fewer prompt tokens and 2.6× lower cost, with no accuracy loss to show for it**
-(p=0.223). On Haiku the tie is exact: `index-only` and `full-catalog` both score 175/310,
-16 discordant pairs each way, **p = 1.0000** — every JSON Schema dropped, zero accuracy
-paid, 43% of the cost. Sending the whole catalog is not a strong baseline; it is the
-most expensive arm on both models and better than neither.
+**Cache-aware admission does not pay on this workload.** Where admission actually fired
+(Haiku, 3 tools admitted), `hotset` is *worse and more expensive* than simply shipping
+names for the whole catalog:
+
+| haiku-4.5 | strict | lenient | $/turn | vs index-only |
+|---|---|---|---|---|
+| index-only | 37.7% | 56.5% | $0.002599 | — |
+| static-hot-set | 42.9% | 54.8% | $0.002662 | +5.2pt strict |
+| **hotset** | **31.6%** | 53.5% | **$0.003184** | **−6.1pt strict (p=0.018), +22% cost** |
+
+The cost penalty is not the cache-write premium — HotSet writes *fewer* tokens than
+`index-only` (94 vs 169). It is prefix invalidation: 1,179 uncached tokens per turn
+against `index-only`'s 548. Every mid-run admission re-warms the prefix, and three
+admitted schemas never earn that back. This is the live confirmation of the offline
+finding that the LRU-K predictor over-admits relative to the oracle — and on this
+workload the oracle admits nothing at all.
+
+The economics is still right; the workload is what's missing. See
+[Why admission loses here](#why-admission-loses-here).
+
 
 The admission rule is a closed form, not a tuned heuristic. A tool earns a cached schema
 when its expected call rate over the horizon clears
@@ -40,6 +58,25 @@ That single number explains why admission fires on Anthropic (n*≈8) and never 
 breakpoint, so `S` is the hot block (389 tok) rather than the whole prefix (11,641).
 See [docs/admission.md](docs/admission.md).
 
+## Why admission loses here
+
+The break-even rule is a statement about *call rates*, and this suite does not produce
+them. Each scenario calls one tool per turn and never calls the same tool twice, so the
+empirical per-tool rate over a session sits far below `n*` for every tool in the catalog.
+The oracle predictor — which sees the future and admits whatever clears break-even —
+admits **nothing**. LRU-K admits three, so LRU-K is wrong, and the live Haiku numbers are
+exactly the price of being wrong: three prefix re-warms nobody asked for.
+
+That makes this a clean negative result rather than a bug. Admission is a bet that a tool
+will be called often enough to amortise its cached schema; on bursty, repetitive traffic
+the bet is good, and on flat single-shot traffic there is no bet to make. The honest
+scope claim is: **layer A (drop the schemas) is where the money is, and layer B/C need a
+workload with intra-session tool reuse before they can be evaluated at all.**
+
+The week-4 predictor ablation inherits this. On qwen the hot set is empty for all four
+predictors, so oracle, ensemble, markov and LRU-K emit byte-identical plans and are
+indistinguishable (p >= 0.163) — a null by construction, not evidence of parity.
+
 ## Layout
 
 ```
@@ -49,6 +86,15 @@ hotset/eval/       runner, task suite, workload skew, significance tests, span t
 hotset/corpus/     harvested MCP tool catalog and synthetic near-duplicate distractors
 hotset/runtime/    thin OpenRouter client — no agent framework, byte control is the point
 ```
+
+| doc | what it settles |
+|---|---|
+| [docs/admission.md](docs/admission.md) | the break-even derivation, and both live sweeps |
+| [docs/pareto.md](docs/pareto.md) | the frontier, and why HotSet is not on the Haiku one |
+| [docs/corpus.md](docs/corpus.md) | distractor design moves strict accuracy by 9 points |
+| [docs/predictors.md](docs/predictors.md) | oracle vs LRU-K vs markov vs ensemble |
+| [docs/baselines.md](docs/baselines.md) | what each arm actually sends |
+| [docs/week1-findings.md](docs/week1-findings.md) | the cache-position measurements this started from |
 
 ## Running
 
@@ -65,13 +111,20 @@ An OpenRouter key goes in a gitignored `.env`. Everything in CI runs without one
 
 ## Reading the numbers
 
-Two things about this harness are worth knowing before trusting any table it prints.
+Three things about this harness are worth knowing before trusting any table it prints.
 
 **Strict and lenient accuracy are both reported.** The catalog is padded with synthetic
 near-duplicates of real tools, and the label blesses exactly one of each pair. Scoring a
 twin as an ordinary error charges arms for a distinction their descriptions do not
 support — it moved one comparison from p<0.001 to p=0.287. Strict cannot tell a wrong
 tool from an equivalent one; lenient cannot tell a right tool from a lucky one.
+
+**Strict accuracy is a property of the corpus, not just the router.** Re-running the
+same 310 turns against the same target tools, changing only the disambiguating clause on
+synthetic distractors, moved `index-only` by 9.0 points strict while its lenient accuracy
+moved 2.0. Twin confusion rose for every arm, monotonically in how much catalog the arm
+exposes — +1.0pt for `static-hot-set`, +11.0pt for `full-catalog` (p=0.0003). Nothing
+about any arm changed. See [docs/corpus.md](docs/corpus.md).
 
 **Every ranking carries its detection floor.** Under paired McNemar, power depends on
 discordant pairs rather than sample size; at n=310 the minimum detectable gap is 4.0%.
@@ -82,8 +135,9 @@ otherwise drop.
 ## Caveats
 
 - One flat workload, one tool call per turn, no tool repeated within a scenario, so
-  per-tool call rates sit below the regime where admission should pay. The oracle
-  predictor admits nothing, which is the controller being right rather than weak.
+  per-tool call rates sit below the regime where admission should pay. The oracle admits
+  nothing; the shipped LRU-K predictor admits three and loses money for it. Nothing here
+  says admission cannot work — only that it is untested on traffic that would reward it.
 - Cross-provider accuracy comparisons need a shared held-out split; earlier sweeps did
   not have one and those claims were withdrawn.
 - Twin provenance covers synthetic distractors only. Real near-duplicates across two MCP

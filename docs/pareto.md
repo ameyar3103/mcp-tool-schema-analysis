@@ -13,8 +13,19 @@ turns, flat workload. Every arm shares the salt, so none inherited a warm prefix
 | full-catalog | 36.5% | 57.7% | 98.5% | 39,193 | $0.000258 | $0.000448 | 0.00 |
 
 **Statistical frontier (lenient): `rag-over-tools`, `hotset`, `lazy-discovery`.**
-HotSet sits on it at 3.2× fewer prompt tokens and 2.6× lower cost than the full
-catalog, with no accuracy loss to show for it (61.9% vs 57.7%, p=0.223).
+
+Read that frontier carefully, because it flatters the wrong thing. `hotset` is on it, but
+on qwen-flash **the hot set is empty** — n* is 98–142 calls against a horizon that offers
+one, so admission correctly refuses every tool. The arm labelled `hotset` here is layer A
+plus a BM25 suffix; the controller contributed nothing. And it is on the frontier only
+under lenient scoring: strict, it is 31.0%, second-worst in the table, behind
+`static-hot-set` by 12.6pt (p=0.000) and `lazy-discovery` by 24.8pt (p=0.000).
+
+The comparison that would justify the project is `hotset` against the *cheap* baselines,
+not against `full-catalog` — which is the most expensive arm here and beats nothing.
+Against `index-only` (+7.4pt lenient, p=0.015) and `rag-over-tools` (+9.7pt, p=0.003)
+HotSet wins; against `static-hot-set` at the same $/turn it does not. With an empty hot
+set, none of those deltas measure admission.
 
 ## Strict scoring measures the label, not the router
 
@@ -66,11 +77,58 @@ turn index — 26%, 24%, 31%, 40%, 42% for turns 0 through 4 — because earlier
 sit in the history and disambiguate the twins. Compaction does not degrade late turns;
 turn 0 is simply the hardest, being the one with no context to disambiguate against.
 
+## Haiku, where admission actually fires — and loses
+
+Run `52cbabb1`, same catalog and same 310 held-out turns, on `claude-haiku-4.5`. Anthropic
+honours a second cache breakpoint, so `S` is the 389-token hot block instead of the whole
+prefix, n* drops to 7.8-9.2, and LRU-K admits three tools. This is the only configuration
+in the project where layer B does anything, so it is the one that decides whether the
+idea works.
+
+| arm | strict | twin | lenient | cache hit | prompt tok | $/turn | $/lenient-correct |
+|---|---|---|---|---|---|---|---|
+| index-only | 37.7% | 18.7% | **56.5%** | 94.7% | 13,651 | **$0.002599** | **$0.004605** |
+| static-hot-set | **42.9%** | 11.9% | 54.8% | 96.4% | 15,954 | $0.002662 | $0.004853 |
+| **hotset** | 31.6% | 21.9% | 53.5% | 91.4% | 14,572 | $0.003184 | $0.005945 |
+| rag-over-tools | 22.6% | 8.4% | 31.0% | 0.9% | 2,531 | $0.003219 | $0.010394 |
+| lazy-discovery | 36.8% | 7.7% | 44.5% | 0.0% | 5,130 | $0.005976 | $0.013424 |
+| full-catalog | 41.6% | 14.8% | **56.5%** | 97.9% | 45,681 | $0.006011 | $0.010647 |
+
+`hotset` is dominated outright by `index-only`: **6.1 points worse strict (p=0.018)**,
+2.9 worse lenient (n.s.), and **22% more expensive**. It is 11.3 points worse than
+`static-hot-set` strict (p=0.000) at 20% more cost. Three admitted schemas made it worse
+than shipping names for all 300 tools.
+
+Splitting the bill by cache class shows the mechanism, and it is not the write premium:
+
+| arm | uncached | cached | written | $/turn |
+|---|---|---|---|---|
+| index-only | 548 | 12,934 | 169 | $0.002599 |
+| static-hot-set | 554 | 15,378 | 22 | $0.002662 |
+| **hotset** | **1,179** | 13,299 | 94 | $0.003184 |
+| full-catalog | 525 | 44,719 | 437 | $0.006011 |
+
+HotSet writes *fewer* tokens than `index-only` (94 vs 169) and still costs more, because
+it reads 2.2× as many at the uncached rate. Each mid-run admission invalidates everything
+downstream of the tool block and the prefix has to re-warm; the hit rate drop (91.4% vs
+94.7%) is that cost showing up in the aggregate. On traffic where an admitted tool is
+called n* times the re-warm amortises. Here nothing is called twice, so it never does —
+which is precisely what the oracle predictor says by admitting nothing at all.
+
+The conclusion this run supports is narrow and negative: **layer A pays, layer B does
+not, and the shipped LRU-K predictor is over-admitting relative to its own economics.**
+
 ## What this does not show
 
-- One model (qwen-flash) and one flat workload. The Haiku frontier is not this frontier:
-  the two providers differ on split cache breakpoints, which is what decides admission.
-- 620 turns from 124 generated sessions, one tool call per turn, no tool repeated within
-  a scenario. Per-tool call rates are bounded below the regime where admission pays.
+- Two models, one flat workload. Both frontiers are shaped by that workload, and it is
+  the wrong shape for the thing under test — 620 turns from 124 generated sessions, one
+  tool call per turn, no tool repeated within a scenario. Per-tool call rates are bounded
+  below the regime where admission pays, by construction of the suite.
+- So the negative result above is scoped: it says LRU-K over-admits on traffic with no
+  reuse, not that cache-aware admission fails in general. Testing the general claim needs
+  a workload with intra-session tool repetition, which this suite does not contain.
+- The strict/lenient split is doing a lot of work in every ranking here. `hotset` moves
+  from second-worst to frontier depending on which one is used; treat single-column
+  comparisons of this table as unsupported.
 - Twin provenance covers synthetic distractors only. Genuine near-duplicates between two
   real MCP servers are scored strictly, so the lenient column is a lower bound.

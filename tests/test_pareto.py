@@ -2,10 +2,13 @@
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from plot_pareto import dominates, frontier, naive_frontier
+from plot_pareto import dominates, frontier, metrics, naive_frontier
 
 
 def arm(cost, accuracy):
@@ -159,3 +162,33 @@ def test_relative_drift_catches_a_shift_in_only_one_arm():
     first, second, p = relative(arm_a, reference)
     assert first == (0, 50) and second == (50, 50)
     assert p < 0.001
+
+
+def _result(session, turn, correct, twin, cost):
+    """A minimal Result-alike; metrics() only reads these fields."""
+    return SimpleNamespace(
+        session=session, turn=turn, correct=correct, twin=twin, error=None,
+        cost_usd=cost, hit_rate=lambda: 0.9,
+    )
+
+
+def test_lenient_scoring_moves_cost_per_correct_with_the_accuracy():
+    """A row must not pair a lenient interval with a strict $/correct."""
+    rows = [_result(0, i, i < 2, 2 <= i < 4, 0.001) for i in range(10)]
+    strict = metrics(rows)
+    assert strict["strict"] == pytest.approx(0.2)
+    assert strict["lenient"] == pytest.approx(0.4)
+    # main() rewrites the lenient row; $/correct has to halve, not stay at the strict rate
+    assert strict["cost_per_correct"] == pytest.approx(strict["cost_per_turn"] / 0.2)
+    assert strict["cost_per_turn"] / strict["lenient"] == pytest.approx(
+        strict["cost_per_turn"] / 0.4
+    )
+
+
+def test_strict_survives_the_lenient_rewrite():
+    """`accuracy` is overwritten in lenient mode; `strict` is what the report reads."""
+    rows = [_result(0, i, i < 3, 3 <= i < 5, 0.001) for i in range(10)]
+    m = metrics(rows)
+    rewritten = dict(m, accuracy=m["lenient"], lo=m["lenient_lo"], hi=m["lenient_hi"])
+    assert rewritten["accuracy"] == pytest.approx(0.5)
+    assert rewritten["strict"] == pytest.approx(0.3)

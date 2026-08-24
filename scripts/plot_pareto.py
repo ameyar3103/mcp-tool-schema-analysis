@@ -45,6 +45,7 @@ def metrics(results: list[TurnResult]) -> dict:
     cost = sum(r.cost_usd for r in scored) / n
     return {
         "accuracy": correct / n,
+        "strict": correct / n,  # survives the lenient rewrite below; the report shows both
         "lenient": lenient / n,
         "lo": lo,
         "hi": hi,
@@ -130,11 +131,13 @@ def report(arms: dict, best: set[str], naive: set[str], flags: list[tuple] = (),
            readmitted: set[str] = frozenset()) -> None:
     """The numbers are the deliverable; the plot is a rendering of them."""
     turns = max(m["turns"] for m in arms.values())
-    print(f"{'arm':16} {'acc':>6} {'95% CI':>15} {'lenient':>8} {'hit':>6} "
-          f"{'$/turn':>10} {'$/correct':>11}  front")
+    scored = "lenient" if arms and next(iter(arms.values()))["accuracy"] != \
+        next(iter(arms.values()))["strict"] else "strict"
+    print(f"{'arm':16} {'strict':>7} {'lenient':>8} {'95% CI':>15} {'hit':>6} "
+          f"{'$/turn':>10} {'$/correct':>11}  front   (CI on {scored})")
     for name, m in sorted(arms.items(), key=lambda kv: kv[1]["cost_per_turn"]):
         ci = f"[{m['lo']:.1%},{m['hi']:.1%}]"
-        print(f"{name:16} {m['accuracy']:6.1%} {ci:>15} {m['lenient']:8.1%} {m['hit_rate']:6.1%} "
+        print(f"{name:16} {m['strict']:7.1%} {m['lenient']:8.1%} {ci:>15} {m['hit_rate']:6.1%} "
               f"${m['cost_per_turn']:9.6f} ${m['cost_per_correct']:10.6f}  "
               f"{'*' if name in best else ''}")
     print(f"\nminimum detectable accuracy gap at n={turns}: {minimum_detectable(turns):.1%}")
@@ -191,8 +194,18 @@ def main(salt: str, out: str = "pareto.png", lenient: bool = False) -> None:
     if lenient:
         # Same frontier machinery, scoring a synthetic twin as a hit. The interval has
         # to move with the point estimate or the plotted bars go negative.
+        # $/correct moves with the scoring too: a row mixing a lenient interval with a
+        # strict cost-per-correct reads as one number and is two.
         arms = {
-            n: dict(m, accuracy=m["lenient"], lo=m["lenient_lo"], hi=m["lenient_hi"])
+            n: dict(
+                m,
+                accuracy=m["lenient"],
+                lo=m["lenient_lo"],
+                hi=m["lenient_hi"],
+                cost_per_correct=(
+                    m["cost_per_turn"] / m["lenient"] if m["lenient"] else float("inf")
+                ),
+            )
             for n, m in arms.items()
         }
     paired = {name: outcomes(rs, lenient) for name, rs in raw.items()}

@@ -79,8 +79,13 @@ while sending 3.2× the tokens. Its 98.5% hit rate does not save it: a hit rate 
 ratio, and the bill is not.
 
 **On lenient accuracy the frontier is `RAG-over-tools`, `hotset`, `lazy discovery`.**
-`index-only` and `static hot set` fall off — cheaper arms tie them. HotSet is on the
-frontier at 3.2× fewer prompt tokens and 2.6× lower cost than the full catalog.
+`index-only` and `static hot set` fall off — cheaper arms tie them.
+
+That frontier is not evidence for admission, and it should not be read as such. The hot
+set is empty on this provider, so the `hotset` arm here *is* layer A plus a BM25 suffix
+with the controller inert. What it demonstrates is the placement effect above, nothing
+more. Its strict accuracy is 31.0%, second-worst in the table, 12.6 points behind
+`static hot set` (p=0.000) — an arm that ships a fixed hot block and never adapts.
 
 ## Sweep — claude-haiku-4.5, 300 tools, 310 held-out turns (salt `52cbabb1`)
 
@@ -113,6 +118,31 @@ With a second breakpoint the rewritten segment `S` is the 389-token hot block; w
 one it is the whole 11,641-token prefix. A 50-turn horizon can supply 8 uses of a tool
 but not 98, so one provider clears the bar by 6× and the other misses by 2×. No
 per-model tuning: the price ratio decides.
+
+**Firing is not the same as paying off, and here it does not pay.** This is the only
+configuration in the project where layer B does anything, so it is the one that decides
+the idea — and `hotset` is dominated outright by `index-only`: 6.1 points worse strict
+(p=0.018), 2.9 worse lenient (n.s.), and **22% more expensive** ($0.003184 vs
+$0.002599). Against `static hot set` it is 11.3 points worse strict (p=0.000) at 20%
+more cost. Three admitted schemas left it worse than shipping bare names for all 300.
+
+The bill by cache class shows why, and it is not the write premium — HotSet writes
+*fewer* tokens than `index-only` (94 vs 169) and still costs more:
+
+| arm | uncached | cached | written | $/turn |
+|---|---|---|---|---|
+| index only | 548 | 12,934 | 169 | $0.002599 |
+| static hot set | 554 | 15,378 | 22 | $0.002662 |
+| **hotset (LRU-K)** | **1,179** | 13,299 | 94 | $0.003184 |
+| full catalog | 525 | 44,719 | 437 | $0.006011 |
+
+It reads 2.2× as many tokens at the uncached rate. Each mid-run admission invalidates
+everything downstream of the tool block and the prefix re-warms; the hit-rate drop
+(91.4% vs 94.7%) is that cost in aggregate. The re-warm amortises when an admitted tool
+is called `n*` times — and on this suite nothing is called twice. The oracle predictor
+admits nothing even on Haiku, so the honest reading is that **LRU-K is over-admitting
+against its own break-even rule**, and the closed form is right in both directions:
+right that admission is affordable here, right that these three tools do not clear it.
 
 **Token reduction has a floor.** RAG-over-tools and lazy discovery post 0.9% and 0.0%
 cache hit against 91–98% elsewhere. Haiku's minimum cacheable prefix is 4,096 tokens;
