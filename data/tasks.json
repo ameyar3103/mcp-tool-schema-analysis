@@ -1,0 +1,502 @@
+[
+  {
+    "scenario": "A QA tester is verifying a signup form works correctly on a staging website.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open the staging signup page at https://staging.myapp.com/signup for me."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill in the name, email, and password fields with test data for me."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Now click the 'Create Account' button."
+      },
+      {
+        "tool": "browser_handle_dialog",
+        "user": "It should show a confirmation dialog - accept it for me."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Can you check the network calls that happened after I submitted, I want to see the signup request payload?"
+      }
+    ]
+  },
+  {
+    "scenario": "A developer is cleaning up a feature branch and preparing it for review before merging into main.",
+    "turns": [
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Can you check what's currently modified but not staged in my project at /home/dev/app?"
+      },
+      {
+        "tool": "git_add",
+        "user": "Okay, go ahead and stage the changes in src/utils.js and src/index.js."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Show me exactly what's queued up to be committed right now."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Looks good, commit that with the message 'Refactor utility functions and fix index bug'."
+      },
+      {
+        "tool": "git_log",
+        "user": "Now pull up the recent commit history so I can see what's landed this week."
+      }
+    ]
+  },
+  {
+    "scenario": "A developer is cleaning up a feature branch and preparing it for review before merging.",
+    "turns": [
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Can you check what's currently changed but not staged in my project at /home/dev/myapp?"
+      },
+      {
+        "tool": "git_add",
+        "user": "Okay, go ahead and stage the changes in src/utils.js and src/index.js."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Now show me exactly what's queued up to be committed so I can double check it."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Looks good, commit that with the message 'Refactor utils and fix index bug'."
+      },
+      {
+        "tool": "git_status",
+        "user": "What does the overall status of the repo look like now?"
+      }
+    ]
+  },
+  {
+    "scenario": "A developer is cleaning up a feature branch and preparing to merge it into main.",
+    "turns": [
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Can you show me what's changed in my working directory that I haven't staged yet, in the project folder /home/dev/myapp?"
+      },
+      {
+        "tool": "git_add",
+        "user": "Okay, go ahead and stage the file src/utils/parser.js in that repo."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Now show me exactly what's sitting in the staging area before I commit."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Great, commit that with the message 'Refactor parser to handle edge cases'."
+      },
+      {
+        "tool": "git_branch",
+        "user": "List out the branches I have that include the word 'feature' in their history."
+      }
+    ]
+  },
+  {
+    "scenario": "A developer is cleaning up a feature branch before merging it into main.",
+    "turns": [
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Can you check what's currently changed but not staged in my project folder at ~/code/billing-app?"
+      },
+      {
+        "tool": "git_add",
+        "user": "Okay, go ahead and stage the changes to invoice.py and utils.py."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Now show me what's actually staged so I can double check before committing."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Looks good, commit that with the message 'Fix rounding error in invoice totals'."
+      },
+      {
+        "tool": "git_log",
+        "user": "Pull up the last few commits on this branch so I can see the recent history."
+      }
+    ]
+  },
+  {
+    "scenario": "A developer is cleaning up a feature branch before opening a pull request and needs to review and commit their changes.",
+    "turns": [
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Can you check what's currently changed in my working directory for the project at ~/code/webapp that hasn't been staged yet?"
+      },
+      {
+        "tool": "git_add",
+        "user": "Okay, go ahead and add the src/api/routes.js and src/api/handlers.js files to staging."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Now show me exactly what's staged and ready to be committed so I can double check before committing."
+      },
+      {
+        "tool": "git_commit",
+        "user": "That looks right, commit it with the message 'Refactor route handlers for clarity'."
+      },
+      {
+        "tool": "git_log",
+        "user": "Can you pull up the last few commits on this repo so I can see the recent history?"
+      }
+    ]
+  },
+  {
+    "scenario": "A project manager wants to build out a knowledge base of team members and their roles for future reference.",
+    "turns": [
+      {
+        "tool": "create_entities",
+        "user": "Add a new person named 'Elena Vasquez' as an entity, she's a Senior Backend Engineer on our team."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add a note to Elena's profile that she's currently leading the payments migration project."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Connect Elena and 'Marcus Lee' with a relation showing that Elena mentors Marcus."
+      },
+      {
+        "tool": "search_nodes",
+        "user": "Can you look up anything we already have stored about 'payments migration'?"
+      },
+      {
+        "tool": "read_graph",
+        "user": "Pull up everything currently stored in our whole team knowledge base so I can review it."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is investigating a bug on a company web dashboard by inspecting the live page.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open up https://dashboard.internal.example.com/reports in the browser for me."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Give me a rundown of all the elements currently visible on this page so I know what I can interact with."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Click on the 'Export CSV' button on the page."
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "Can you check the browser console and tell me if there are any error messages logged?"
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Show me the full request and response details for network call number 7 in the list."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is building out a knowledge base about their company's team members and wants to track relationships.",
+    "turns": [
+      {
+        "tool": "create_entities",
+        "user": "Create an entry for 'Maria Chen' as a Product Manager and one for 'Backend Team' as a department."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Link Maria Chen to the Backend Team by saying she manages it."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add a note to Maria's profile that she joined the company in March 2022."
+      },
+      {
+        "tool": "search_nodes",
+        "user": "Can you look up anything we have stored about 'Backend Team'?"
+      },
+      {
+        "tool": "delete_relations",
+        "user": "Actually, remove that relation saying Maria manages the Backend Team, that changed recently."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is building out a personal knowledge base about their professional network and wants to keep it updated.",
+    "turns": [
+      {
+        "tool": "create_entities",
+        "user": "I met someone new at a conference, add an entry for 'Priya Nair' as a data scientist at Lumen Analytics."
+      },
+      {
+        "tool": "create_relations",
+        "user": "She actually works closely with my colleague Tom Reyes on the same project team, can you link those two together?"
+      },
+      {
+        "tool": "add_observations",
+        "user": "Also note that Priya specializes in NLP and has a PhD from Berkeley, add that to her profile."
+      },
+      {
+        "tool": "search_nodes",
+        "user": "Can you look up everything currently stored about Tom Reyes for me?"
+      },
+      {
+        "tool": "delete_observations",
+        "user": "I misspelled Lumen Analytics as one word earlier, remove that observation from Priya's entry."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is building up a personal knowledge base about their coworkers and current projects.",
+    "turns": [
+      {
+        "tool": "create_entities",
+        "user": "I want to record that Sarah is the lead engineer on the Phoenix project, add her as a new item with that fact."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Also note that Sarah reports to Michael, can you link those two records together?"
+      },
+      {
+        "tool": "add_observations",
+        "user": "Actually, add another note to Sarah's profile saying she's based in the Berlin office."
+      },
+      {
+        "tool": "open_nodes",
+        "user": "Can you pull up everything you have stored about Sarah so far?"
+      },
+      {
+        "tool": "delete_observations",
+        "user": "I misspoke earlier, please remove the note about her being in Berlin."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is organizing local project files and wants to tidy up an old folder structure.",
+    "turns": [
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "Show me everything sitting inside my Downloads/old_reports folder along with how big each file is."
+      },
+      {
+        "tool": "create_directory",
+        "user": "I want to make a new folder called 'archive_2023' inside that same directory to move stuff into."
+      },
+      {
+        "tool": "move_file",
+        "user": "Move the file quarterly_summary.pdf from Downloads/old_reports into that new archive_2023 folder."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Can you give me the full details on that file now, like when it was last modified?"
+      },
+      {
+        "tool": "directory_tree",
+        "user": "Give me a full nested view of the whole old_reports directory so I can see everything that's left."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is organizing personal files and checking storage usage before an upgrade.",
+    "turns": [
+      {
+        "tool": "list_directory",
+        "user": "Show me everything sitting inside my Downloads folder right now."
+      },
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "I need to see which files in there are actually the biggest so I know what to delete."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Give me the details on that old 'backup_2022.zip' file - when was it created and how big is it exactly?"
+      },
+      {
+        "tool": "move_file",
+        "user": "Move that zip file into my Archive folder instead of leaving it in Downloads."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Can you compress the presentation.pptx file so I can send a smaller version?"
+      }
+    ]
+  },
+  {
+    "scenario": "A user is organizing personal notes and files on their computer before a big move to a new laptop.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Can you show me a full folder-by-folder breakdown of everything inside my Documents/Notes directory?"
+      },
+      {
+        "tool": "list_allowed_directories",
+        "user": "Which folders am I even allowed to let you look at on this machine?"
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder called 'Archive2024' inside Documents/Notes, please set that up."
+      },
+      {
+        "tool": "move_file",
+        "user": "Rename the file Documents/Notes/old_todo.txt to Documents/Notes/Archive2024/old_todo.txt."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Can you tell me how big the file Documents/Notes/journal.txt is and when it was last modified?"
+      }
+    ]
+  },
+  {
+    "scenario": "A user is organizing project documentation files and checking their structure before archiving.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Give me a full tree view of everything inside my ~/projects/report-2024 folder."
+      },
+      {
+        "tool": "list_allowed_directories",
+        "user": "Which folders am I even allowed to work with through you?"
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder called 'archive/final' inside that report project, please set it up."
+      },
+      {
+        "tool": "move_file",
+        "user": "Move the file summary_draft.docx into that new archive/final folder and rename it to summary_final.docx."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Can you tell me the size and last modified date of summary_final.docx now?"
+      }
+    ]
+  },
+  {
+    "scenario": "A user is organizing project files and doing some cleanup on their local machine.",
+    "turns": [
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "Show me everything sitting inside my Downloads folder along with how big each item is."
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder structure like reports/2024/q1 set up under my Documents directory."
+      },
+      {
+        "tool": "move_file",
+        "user": "Move that old invoice.pdf from Downloads into the new reports/2024/q1 folder."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Can you tell me when that invoice file was originally created and last touched?"
+      },
+      {
+        "tool": "directory_tree",
+        "user": "Give me a full tree view of everything under my Documents/reports folder."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is researching flight booking options and coordinating a meeting time across time zones with a colleague.",
+    "turns": [
+      {
+        "tool": "fetch",
+        "user": "Grab the content from this airline's fare page for me: https://example-airline.com/deals"
+      },
+      {
+        "tool": "get_current_time",
+        "user": "What time is it right now in Tokyo?"
+      },
+      {
+        "tool": "convert_time",
+        "user": "If we schedule the call for 3pm my time in New York, what would that be for someone in Tokyo?"
+      },
+      {
+        "tool": "add_observations",
+        "user": "Remember that my colleague Aiko works out of the Tokyo office - add that as a note about her."
+      },
+      {
+        "tool": "search_nodes",
+        "user": "Can you pull up everything you know about Aiko from before?"
+      }
+    ]
+  },
+  {
+    "scenario": "A user is testing a login flow on their web app and debugging a form submission issue.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open up http://localhost:3000/login in the browser for me."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill in the email field with 'test@example.com' and the password field with 'Passw0rd!'."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Click the 'Sign In' button now."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Something seems off, can you get the accessibility tree of the current page so I can see what rendered?"
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "Check the browser console for any error messages that popped up."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is testing a web form on their company's internal site and troubleshooting a submission issue.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open up our staging site at https://staging.internal-crm.com/contacts/new for me."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill in the name field with 'Jordan Blake' and the email field with 'jordan.blake@example.com'."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Click the 'Save Contact' button now."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Nothing seems to be happening, can you check what network calls fired off after I clicked that?"
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Pull up the full request and response details for the third one in that list, it looks suspicious."
+      }
+    ]
+  },
+  {
+    "scenario": "A user is testing and debugging a web form on their company's internal site.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open up our staging site at internal.example.com/signup for me."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill in the name, email, and phone fields with test data please."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Hit the submit button on the form now."
+      },
+      {
+        "tool": "browser_handle_dialog",
+        "user": "A confirmation popup should appear next, please accept it."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Can you list out the network calls that fired after I submitted, I want to check the API response?"
+      }
+    ]
+  }
+]

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import random
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -76,15 +79,30 @@ def parse_usage(payload: dict) -> CacheUsage:
     )
 
 
-def post(body: dict) -> dict:
+# Transient: worth retrying. Anything else is our bug and should surface immediately.
+_RETRY = {408, 429, 500, 502, 503, 529}
+
+
+def post(body: dict, attempts: int = 5) -> dict:
     """Raw Chat Completions call. Probes need byte-exact control over the body."""
     req = urllib.request.Request(
         _ENDPOINT,
         data=json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {api_key()}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=180) as resp:
-        return json.loads(resp.read())
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            # urllib discards the body, which is the only place the real reason lives.
+            detail = exc.read().decode(errors="replace")[:300]
+            if exc.code not in _RETRY or attempt == attempts - 1:
+                raise urllib.error.HTTPError(
+                    exc.url, exc.code, f"{exc.reason}: {detail}", exc.headers, None
+                ) from None
+            time.sleep(2**attempt * 0.5 + random.random() * 0.4)
+    raise RuntimeError("unreachable")
 
 
 def pinned_body(spec: ModelSpec, **overrides) -> dict:

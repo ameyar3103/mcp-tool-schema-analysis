@@ -50,7 +50,11 @@ def _block(text: str, cached: bool) -> dict:
 def preamble(plan: Plan) -> str:
     """Guidance matched to the layers this plan actually renders."""
     guide = _GUIDE_INDEX if plan.index else (_GUIDE_SCHEMAS if plan.hot else "")
-    parts = [_INTRO, guide, plan.instructions, _CALL]
+    # With no names in the prompt at all, telling the model to name a tool invites guessing.
+    # Salt leads, so a new run invalidates the whole prefix. Without it an arm
+    # re-run inside the cache TTL inherits a warm prefix it never paid for.
+    head = f"[run {plan.salt}]" if plan.salt else ""
+    parts = [head, _INTRO, guide, plan.instructions, _CALL if guide else ""]
     return "\n\n".join(p for p in parts if p)
 
 
@@ -120,4 +124,5 @@ def assemble(plan: Plan, messages: list[dict], split: bool = True) -> dict:
     if plan.tail:
         # Suffix placement is load-bearing: dropping it next turn leaves the prefix intact.
         msgs.append({"role": "user", "content": layer_c(plan.tail)})
-    return {"messages": msgs, "tools": [dispatcher_tool(), *plan.extra_tools]}
+    tools = ([dispatcher_tool()] if plan.use_dispatcher else []) + plan.extra_tools
+    return {"messages": msgs, "tools": tools}

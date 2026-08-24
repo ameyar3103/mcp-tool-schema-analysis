@@ -52,8 +52,12 @@ _SEARCH_TOOL = {
     },
 }
 
-_LAZY_HINT = """No tool schemas are loaded. Call `search_tools` to find the tool you
-need, then call that tool. You may search more than once."""
+_LAZY_HINT = """You do not know any tool names yet, and no schemas are loaded.
+
+Always call `search_tools` first to discover what exists. It returns full schemas.
+Only after a search may you call one of the tools it returned, by its exact name.
+Never guess a tool name: a guessed name does not exist and the call will fail.
+You may search more than once if the first results do not fit."""
 
 
 class LazyDiscovery:
@@ -66,7 +70,9 @@ class LazyDiscovery:
         self._bm25: BM25 | None = None
 
     def plan(self, catalog: list[Tool], history: list[dict], query: str) -> Plan:
-        return Plan(extra_tools=[_SEARCH_TOOL], instructions=_LAZY_HINT)
+        # The dispatcher would claim to be the only way to call a tool, which
+        # competes with search_tools. search_tools is this arm's format primer.
+        return Plan(extra_tools=[_SEARCH_TOOL], instructions=_LAZY_HINT, use_dispatcher=False)
 
     def serves(self, name: str) -> bool:
         """Does this policy handle the named tool itself, rather than the environment?"""

@@ -17,6 +17,8 @@ class Plan:
     tail: list[Tool] = field(default_factory=list)  # layer C, ephemeral suffix
     extra_tools: list[dict] = field(default_factory=list)  # native tools past the dispatcher
     instructions: str = ""  # policy-specific guidance appended to the preamble
+    use_dispatcher: bool = True  # drop it when an arm supplies its own native tool
+    salt: str = ""  # per-run nonce; the runner sets it, policies never do
 
 
 class Policy(Protocol):
