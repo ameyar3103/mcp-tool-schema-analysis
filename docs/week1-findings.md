@@ -60,3 +60,62 @@ This is why serialization is pinned in `hotset/layout/serialize.py`.
 The first pass of Q1 ran single-shot and reported MISS, contradicting Q4 in the
 same run. Repeats showed the `tools` path is non-deterministic. **Every probe
 here runs multiple trials; single-shot cache measurements are not trustworthy.**
+
+---
+
+# Week 2 — Layout measurement
+
+## Q5 — Does the dispatcher actually route?
+
+No, and that is better than the design intended. Given one tool named `call_tool`
+in the native field and 76 tools described only in cached system text, the model
+emits a native `tool_call` for `get_current_time` — **a name that appears nowhere
+in the tools field** — with correct arguments.
+
+The tools field acts as a **format primer**, not a router: its presence switches the
+model into structured-call mode, and it then names whatever tool the *text* described.
+So all 76 tools get native `tool_calls` while only one tool's bytes sit in the
+uncached upstream field. `parse_call()` accepts both the direct and wrapped shapes.
+
+## Q6 — Is the ephemeral tail really a pure suffix?
+
+Yes, against a live provider. Four turns, tail injected only on turn 2:
+
+| turn | tail | cached | uncached | tool called |
+|---|---|---|---|---|
+| 0 | no | 0 (write 3107) | 22 | `get_current_time` |
+| 1 | no | 3107 | 78 | `convert_time` |
+| 2 | **yes** | 3107 | 354 | `read_text_file` |
+| 3 | no | 3107 | 212 | — |
+
+`read_text_file` had only a Layer A index line, no schema, until the tail supplied
+one; the model called it correctly. Dropping the tail on turn 3 left the prefix
+byte-identical, so tail-loading costs nothing in cache terms.
+
+## Q7 — Split breakpoints, and why the admission threshold is provider-dependent
+
+Layer A is frozen; Layer B changes on every admission. Giving each its own
+breakpoint should let admission re-write B alone. Whether it does is a **provider
+capability**, not a property of the layout:
+
+| | admission → cached | admission → write |
+|---|---|---|
+| Qwen, split | 0 | 6,616 |
+| Haiku, no split | 0 | 7,420 |
+| Haiku, **split** | **6,652** | **767** |
+
+Alibaba silently ignores the second breakpoint. Anthropic honours it, and Layer A
+survives admission.
+
+Marginal cost of one admission on Haiku over a warm turn, against one tail-load
+at $1.00/MTok:
+
+| layout | marginal admission | break-even `n*` |
+|---|---|---|
+| single breakpoint | $0.008554 | **54.8 uses** |
+| split breakpoints | $0.000902 | **5.8 uses** |
+
+**A 9.5× shift in the admission threshold from a structural choice carrying no
+semantic content.** `n*` therefore depends not only on a model's `u/c` ratio but on
+how many cache segments its provider honours — recorded as
+`ModelSpec.cache_breakpoints`.

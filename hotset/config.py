@@ -15,6 +15,7 @@ class ModelSpec(BaseModel):
     write: float  # cache-write premium, charged once per admission
     completion: float  # output tokens; never cached
     min_cacheable_tokens: int  # below this the provider silently skips caching
+    cache_breakpoints: int  # >1 lets admission re-write layer B alone
     context_tokens: int
 
     @property
@@ -32,7 +33,8 @@ MODELS: dict[str, ModelSpec] = {
         cached=0.006,
         write=0.038,
         completion=0.13,
-        min_cacheable_tokens=1024,  # unverified; probe 1 measures the real floor
+        min_cacheable_tokens=1024,  # probe 3: confirmed
+        cache_breakpoints=1,
         context_tokens=1_000_000,
     ),
     # Headline run: u/c = 10 reproduces the arithmetic in the design doc.
@@ -44,6 +46,7 @@ MODELS: dict[str, ModelSpec] = {
         write=1.25,
         completion=5.0,
         min_cacheable_tokens=4096,
+        cache_breakpoints=4,
         context_tokens=200_000,
     ),
     "sonnet": ModelSpec(
@@ -54,6 +57,7 @@ MODELS: dict[str, ModelSpec] = {
         write=2.50,
         completion=10.0,
         min_cacheable_tokens=1024,
+        cache_breakpoints=4,
         context_tokens=1_000_000,
     ),
 }
