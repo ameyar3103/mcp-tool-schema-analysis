@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from hotset.config import ModelSpec
 from hotset.corpus.models import Tool
+from hotset.eval.spans import Recorder, usage_attributes
 from hotset.eval.tasks import Session
 from hotset.layout.prompt import assemble, parse_call
 from hotset.runtime.openrouter import parse_usage, pinned_body, post
@@ -61,7 +62,13 @@ def _call(spec: ModelSpec, frag: dict, session_id: str) -> tuple[dict, object, f
 
 
 def run_session(
-    policy, spec: ModelSpec, catalog: list[Tool], session: Session, idx: int, salt: str = ""
+    policy,
+    spec: ModelSpec,
+    catalog: list[Tool],
+    session: Session,
+    idx: int,
+    salt: str = "",
+    recorder: Recorder | None = None,
 ):
     """Replay one scenario in order, keeping history so the cache can actually warm."""
     names = {t.name for t in catalog}
@@ -71,17 +78,25 @@ def run_session(
     sid, history, out = uuid.uuid4().hex, [], []
     getattr(policy, "reset", lambda: None)()  # scenario boundary, not a state wipe
 
+    rec = recorder or Recorder(policy.name, spec.slug)
     for turn_no, turn in enumerate(session.turns):
         history.append({"role": "user", "content": turn.user})
         result = TurnResult(
             arm=policy.name, model=spec.slug, session=idx, turn=turn_no, expected=turn.tool
         )
+        turn_span = rec.span(
+            "turn", sid, attributes={}, **{"hotset.session": idx, "hotset.turn": turn_no}
+        )
+        span = turn_span.__enter__()
         plan = policy.plan(catalog, history, turn.user)
         plan.salt = salt
+        span.attributes["hotset.hot_size"] = len(getattr(policy, "hot", []))
 
         for hop in range(_MAX_HOPS):
             try:
-                message, usage, elapsed = _call(spec, assemble(plan, history), sid)
+                with rec.span("chat", sid, span.span_id, **{"hotset.hop": hop}) as call_span:
+                    message, usage, elapsed = _call(spec, assemble(plan, history), sid)
+                    call_span.attributes.update(usage_attributes(usage))
             except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
                 result.error = f"{type(exc).__name__}: {exc}"
                 break
@@ -128,6 +143,18 @@ def run_session(
             )
             break
 
+        span.attributes.update(
+            {
+                "hotset.expected": turn.tool,
+                "hotset.predicted": result.predicted,
+                "hotset.correct": result.correct,
+                "hotset.twin": result.twin,
+                "hotset.hallucinated": result.hallucinated,
+                "hotset.hops": result.hops,
+                "hotset.cost_usd": result.cost_usd,
+            }
+        )
+        turn_span.__exit__(None, None, None)
         out.append(result)
     return out
 
