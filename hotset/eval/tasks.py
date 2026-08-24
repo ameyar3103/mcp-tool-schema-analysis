@@ -7,6 +7,7 @@ once by a strong model, then frozen to JSON so every arm sees identical inputs.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -61,10 +62,22 @@ def _extract(text: str) -> list[dict]:
 
 
 def generate(
-    catalog: list[Tool], n: int = 4, turns: int = 5, model: str = "sonnet"
+    catalog: list[Tool],
+    n: int = 4,
+    turns: int = 5,
+    model: str = "sonnet",
+    avoid: set[str] | None = None,
 ) -> list[Session]:
-    """One batch of sessions. Invalid tool names are dropped, not repaired."""
+    """One batch of sessions. Invalid tool names are dropped, not repaired.
+
+    `catalog` doubles as the focus window: showing a slice rather than everything is
+    how batches diverge, since an unchanging prompt converges on the same scenarios
+    and the dedup then discards most of each batch.
+    """
+    banned = "\n".join(f"- {s}" for s in sorted(avoid)[:40]) if avoid else ""
     prompt = _PROMPT.format(index=layer_a_index(catalog), n=n, turns=turns)
+    if banned:
+        prompt += f"\n\nThese scenarios already exist. Invent different ones:\n{banned}"
     body = pinned_body(
         MODELS[model], max_tokens=4000, messages=[{"role": "user", "content": prompt}]
     )
@@ -93,7 +106,15 @@ def load(path: Path = SUITE) -> list[Session]:
 
 
 def split(sessions: list[Session], ratio: float = 0.5, seed: int = 0) -> tuple[list, list]:
-    """Deterministic train/test split. Frequency priors must never see the eval set."""
-    order = sorted(range(len(sessions)), key=lambda i: hash((seed, sessions[i].scenario)))
+    """Deterministic train/test split. Frequency priors must never see the eval set.
+
+    blake2b, not `hash()`: str hashing is salted per process, so the built-in gives a
+    different split on every run and two sweeps silently score different turn sets.
+    """
+    def key(i: int) -> str:
+        raw = f"{seed}:{sessions[i].scenario}".encode()
+        return hashlib.blake2b(raw, digest_size=8).hexdigest()
+
+    order = sorted(range(len(sessions)), key=key)
     cut = round(len(sessions) * ratio)
     return [sessions[i] for i in order[:cut]], [sessions[i] for i in order[cut:]]

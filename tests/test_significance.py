@@ -53,3 +53,16 @@ def test_compare_orders_the_stronger_arm_first():
 
 def test_power_improves_with_sample_size():
     assert minimum_detectable(400) < minimum_detectable(95)
+
+
+def test_split_is_stable_across_processes():
+    """Regression: `hash()` is salted per process, so two sweeps scored different turns."""
+    import subprocess
+    import sys
+
+    code = "from hotset.eval.tasks import load, split; print([s.scenario for s in split(load())[1]])"
+    runs = {
+        subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
+        for _ in range(3)
+    }
+    assert len(runs) == 1
