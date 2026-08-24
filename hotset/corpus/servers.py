@@ -23,14 +23,27 @@ class ServerSpec(BaseModel):
 
 
 SERVERS: list[ServerSpec] = [
-    ServerSpec(name="filesystem", command="npx",
-               args=["-y", "@modelcontextprotocol/server-filesystem", _SANDBOX], env=_NPM),
-    ServerSpec(name="memory", command="npx",
-               args=["-y", "@modelcontextprotocol/server-memory"], env=_NPM),
-    ServerSpec(name="everything", command="npx",
-               args=["-y", "@modelcontextprotocol/server-everything"], env=_NPM),
-    ServerSpec(name="sequential-thinking", command="npx",
-               args=["-y", "@modelcontextprotocol/server-sequential-thinking"], env=_NPM),
+    ServerSpec(
+        name="filesystem",
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-filesystem", _SANDBOX],
+        env=_NPM,
+    ),
+    ServerSpec(
+        name="memory", command="npx", args=["-y", "@modelcontextprotocol/server-memory"], env=_NPM
+    ),
+    ServerSpec(
+        name="everything",
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-everything"],
+        env=_NPM,
+    ),
+    ServerSpec(
+        name="sequential-thinking",
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-sequential-thinking"],
+        env=_NPM,
+    ),
     ServerSpec(name="playwright", command="npx", args=["-y", "@playwright/mcp@latest"], env=_NPM),
     ServerSpec(name="git", command="uvx", args=["mcp-server-git", "--repository", str(_REPO)]),
     ServerSpec(name="fetch", command="uvx", args=["mcp-server-fetch"]),

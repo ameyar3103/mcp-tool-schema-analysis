@@ -26,10 +26,9 @@ async def harvest_server(spec: ServerSpec) -> list[Tool]:
     params = StdioServerParameters(
         command=spec.command, args=spec.args, env={**os.environ, **spec.env}
     )
-    async with stdio_client(params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            listed = await session.list_tools()
+    async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+        await session.initialize()
+        listed = await session.list_tools()
     return [
         Tool(
             name=t.name,
@@ -59,9 +58,7 @@ def freeze(tools: list[Tool], path: Path = CATALOG_PATH) -> Path:
     """Write the catalog name-sorted with stable formatting so diffs are meaningful."""
     path.parent.mkdir(parents=True, exist_ok=True)
     ordered = sorted(tools, key=lambda t: (t.server, t.name))
-    path.write_text(
-        json.dumps([t.model_dump() for t in ordered], indent=2, sort_keys=True) + "\n"
-    )
+    path.write_text(json.dumps([t.model_dump() for t in ordered], indent=2, sort_keys=True) + "\n")
     return path
 
 

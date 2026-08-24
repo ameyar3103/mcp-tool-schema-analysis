@@ -12,10 +12,22 @@ from hotset.corpus.models import Tool
 
 # Verb synonyms: the primary collision axis, applied to names and descriptions alike.
 _SYNONYMS = [
-    ("get", "fetch"), ("fetch", "retrieve"), ("create", "make"), ("make", "add"),
-    ("delete", "remove"), ("remove", "drop"), ("update", "modify"), ("modify", "edit"),
-    ("list", "enumerate"), ("read", "load"), ("write", "save"), ("search", "find"),
-    ("open", "launch"), ("close", "dismiss"), ("navigate", "goto"), ("select", "choose"),
+    ("get", "fetch"),
+    ("fetch", "retrieve"),
+    ("create", "make"),
+    ("make", "add"),
+    ("delete", "remove"),
+    ("remove", "drop"),
+    ("update", "modify"),
+    ("modify", "edit"),
+    ("list", "enumerate"),
+    ("read", "load"),
+    ("write", "save"),
+    ("search", "find"),
+    ("open", "launch"),
+    ("close", "dismiss"),
+    ("navigate", "goto"),
+    ("select", "choose"),
 ]
 # Fallbacks so tools without a swappable verb can still spawn variants.
 _NAMESPACES = ["ext", "alt", "aux", "legacy", "beta"]

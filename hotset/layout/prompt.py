@@ -6,18 +6,23 @@ import json
 
 from hotset.corpus.models import Tool
 from hotset.layout.serialize import canonical_tool, layer_a_index
+from hotset.policy.base import Plan
+
+_INTRO = "You are a tool-using assistant."
 
 # Layers A and B render as system text, never the native tools field: only text
 # blocks honour a cache breakpoint on OpenRouter (see docs/week1-findings.md).
-_PREAMBLE = """You are a tool-using assistant.
-
-CATALOG lists every tool available to you, one per line, as
+_GUIDE_INDEX = """CATALOG lists every tool available to you, one per line, as
 `name(arg, optional?) - summary`. SCHEMAS gives full parameter detail for the
 tools you are most likely to need. If a CATALOG tool you need is absent from
 SCHEMAS, call it anyway using the argument names shown on its catalog line.
 
-Never invent a tool that does not appear in CATALOG. To call a tool, emit a
-normal tool call whose name is the exact CATALOG name."""
+Never invent a tool that does not appear in CATALOG."""
+
+_GUIDE_SCHEMAS = """SCHEMAS gives full parameter detail for every tool you may call.
+Never invent a tool that does not appear in SCHEMAS."""
+
+_CALL = "To call a tool, emit a normal tool call whose name is the exact tool name."
 
 
 def layer_a(catalog: list[Tool]) -> str:
@@ -42,17 +47,24 @@ def _block(text: str, cached: bool) -> dict:
     return {**block, "cache_control": {"type": "ephemeral"}} if cached else block
 
 
-def cached_prefix(
-    catalog: list[Tool], hot: list[Tool], preamble: str = _PREAMBLE, split: bool = True
-) -> list[dict]:
+def preamble(plan: Plan) -> str:
+    """Guidance matched to the layers this plan actually renders."""
+    guide = _GUIDE_INDEX if plan.index else (_GUIDE_SCHEMAS if plan.hot else "")
+    parts = [_INTRO, guide, plan.instructions, _CALL]
+    return "\n\n".join(p for p in parts if p)
+
+
+def cached_prefix(plan: Plan, split: bool = True) -> list[dict]:
     """System blocks for layers A and B.
 
-    Split puts a breakpoint after A as well as B. A is frozen and B changes on every
-    admission, so splitting means admission re-writes only B, not the whole prefix.
+    Split gives A its own breakpoint. A is frozen and B changes on every admission,
+    so where the provider honours it, admission re-writes B alone (see Q7). Pointless
+    without an index, since the head would then be a few hundred bytes.
     """
-    head, body = "\n\n".join([preamble, layer_a(catalog)]), layer_b(hot)
-    if not split:
-        return [_block(head + "\n\n" + body, True)]
+    head = "\n\n".join(p for p in (preamble(plan), layer_a(plan.index) if plan.index else "") if p)
+    body = layer_b(plan.hot) if plan.hot else ""
+    if not split or not plan.index or not body:
+        return [_block("\n\n".join(p for p in (head, body) if p), True)]
     return [_block(head, True), _block(body, True)]
 
 
@@ -62,14 +74,14 @@ _DISPATCHER = {
     "type": "function",
     "function": {
         "name": "call_tool",
-        "description": "Invoke one tool from CATALOG. This is the only way to call a tool.",
+        "description": "Invoke one tool from the catalog. This is the only way to call a tool.",
         "parameters": {
             "type": "object",
             "properties": {
                 # Free-form, not an enum: constrained decoding would make hallucinated
                 # names impossible and zero out the metric we exist to measure.
-                "tool": {"type": "string", "description": "Exact tool name from CATALOG."},
-                # Permissive: 76 heterogeneous schemas share no single argument shape.
+                "tool": {"type": "string", "description": "Exact tool name from the catalog."},
+                # Permissive: the catalog's schemas share no single argument shape.
                 "arguments": {"type": "object", "description": "Arguments for that tool."},
             },
             "required": ["tool", "arguments"],
@@ -100,20 +112,12 @@ def parse_call(message: dict) -> tuple[str, dict] | None:
     if fn.get("name") == _DISPATCHER["function"]["name"]:
         return str(args.get("tool", "")), args.get("arguments") or {}
     return fn.get("name", ""), args
-    
 
 
-def assemble(
-    catalog: list[Tool],
-    hot: list[Tool],
-    messages: list[dict],
-    tail: list[Tool] | None = None,
-    split: bool = True,
-) -> dict:
+def assemble(plan: Plan, messages: list[dict], split: bool = True) -> dict:
     """Request fragment: cached system prefix, then history, then the ephemeral tail."""
-    prefix = cached_prefix(catalog, hot, split=split)
-    msgs: list[dict] = [{"role": "system", "content": prefix}, *messages]
-    if tail:
+    msgs: list[dict] = [{"role": "system", "content": cached_prefix(plan, split)}, *messages]
+    if plan.tail:
         # Suffix placement is load-bearing: dropping it next turn leaves the prefix intact.
-        msgs.append({"role": "user", "content": layer_c(tail)})
-    return {"messages": msgs, "tools": [dispatcher_tool()]}
+        msgs.append({"role": "user", "content": layer_c(plan.tail)})
+    return {"messages": msgs, "tools": [dispatcher_tool(), *plan.extra_tools]}

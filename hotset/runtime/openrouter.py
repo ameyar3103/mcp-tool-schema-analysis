@@ -99,9 +99,14 @@ def pinned_body(spec: ModelSpec, **overrides) -> dict:
     }
 
 
-def complete(spec: ModelSpec, messages: list[dict], tools: list[dict] | None = None,
-             session_id: str | None = None, max_tokens: int = 256,
-             reasoning: bool = False) -> dict:
+def complete(
+    spec: ModelSpec,
+    messages: list[dict],
+    tools: list[dict] | None = None,
+    session_id: str | None = None,
+    max_tokens: int = 256,
+    reasoning: bool = False,
+) -> dict:
     """One Chat Completions call, hard-pinned to a single provider so the cache stays deterministic."""
     body = {
         "model": spec.slug,
