@@ -12,7 +12,7 @@ from hotset.eval.runner import run_arm, save, summarize
 from hotset.eval.tasks import load as load_tasks
 from hotset.policy.baselines import FullCatalog, LazyDiscovery, RagOverTools
 
-HEAD = f"{'arm':16} {'acc':>6} {'halluc':>7} {'hit':>6} {'prompt':>8} {'hops':>5} {'lat':>6} {'$/turn':>9}"
+HEAD = f"{'arm':16} {'acc':>6} {'halluc':>7} {'hit':>6} {'prompt':>8} {'hops':>5} {'lat':>6} {'$/turn':>9} {'$/correct':>10}"
 
 
 def main(model: str = "qwen-flash", size: int = 76) -> None:
@@ -30,7 +30,8 @@ def main(model: str = "qwen-flash", size: int = 76) -> None:
         print(
             f"{arm.name:16} {m['accuracy']:6.1%} {m['hallucinated']:7.1%} {m['hit_rate']:6.1%} "
             f"{m['prompt_tokens']:8.0f} {m['hops']:5.2f} {m['latency_s']:5.1f}s "
-            f"${m['cost_per_turn']:.6f}" + (f"  ({m['errors']} err)" if m["errors"] else "")
+            f"${m['cost_per_turn']:.6f} ${m['cost_per_correct']:.6f}"
+            + (f"  ({m['errors']} err)" if m["errors"] else "")
         )
 
 

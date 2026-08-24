@@ -90,3 +90,10 @@ def freeze(sessions: list[Session], path: Path = SUITE) -> Path:
 def load(path: Path = SUITE) -> list[Session]:
     """Read the frozen suite."""
     return [Session.model_validate(s) for s in json.loads(path.read_text())]
+
+
+def split(sessions: list[Session], ratio: float = 0.5, seed: int = 0) -> tuple[list, list]:
+    """Deterministic train/test split. Frequency priors must never see the eval set."""
+    order = sorted(range(len(sessions)), key=lambda i: hash((seed, sessions[i].scenario)))
+    cut = round(len(sessions) * ratio)
+    return [sessions[i] for i in order[:cut]], [sessions[i] for i in order[cut:]]

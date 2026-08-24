@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 import urllib.error
 import uuid
@@ -105,6 +106,8 @@ def run_session(
                 result.hops = hop + 1
                 continue
             result.predicted = name
+            # Deployments only see what was called, so that is what the predictor gets.
+            getattr(policy, "observe", lambda _: None)(name)
             result.correct = name == turn.tool
             result.hallucinated = bool(name) and name not in names
             history.append(
@@ -135,6 +138,8 @@ def run_arm(
 
     All arms in a comparison must share one salt, so none starts warmer than another.
     """
+    if getattr(policy, "stateful", False):
+        workers = 1
     with ThreadPoolExecutor(max_workers=workers) as pool:
         jobs = [
             pool.submit(run_session, policy, spec, catalog, s, i, salt)
@@ -154,6 +159,7 @@ def save(results: list[TurnResult], tag: str) -> Path:
 def summarize(results: list[TurnResult]) -> dict:
     """The headline metric vector for one arm."""
     scored = [r for r in results if not r.error]
+    correct = sum(r.correct for r in scored)
     n = len(scored) or 1
     turns_with_prompt = [r for r in scored if r.prompt_tokens]
     return {
@@ -166,4 +172,6 @@ def summarize(results: list[TurnResult]) -> dict:
         "hops": sum(r.hops for r in scored) / n,
         "latency_s": sum(r.latency_s for r in scored) / n,
         "cost_per_turn": sum(r.cost_usd for r in scored) / n,
+        # The metric that matters: a cheap turn that picks the wrong tool is waste.
+        "cost_per_correct": (sum(r.cost_usd for r in scored) / correct if correct else math.inf),
     }

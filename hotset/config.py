@@ -16,6 +16,8 @@ class ModelSpec(BaseModel):
     completion: float  # output tokens; never cached
     min_cacheable_tokens: int  # below this the provider silently skips caching
     cache_breakpoints: int  # >1 lets admission re-write layer B alone
+    token_scale: float  # this tokenizer's length per reference (Qwen) token
+    template_overhead: int  # provider-injected tool-use boilerplate, in tokens
     context_tokens: int
 
     @property
@@ -35,6 +37,8 @@ MODELS: dict[str, ModelSpec] = {
         completion=0.13,
         min_cacheable_tokens=1024,  # probe 3: confirmed
         cache_breakpoints=1,
+        token_scale=1.0226,
+        template_overhead=304,
         context_tokens=1_000_000,
     ),
     # Headline run: u/c = 10 reproduces the arithmetic in the design doc.
@@ -47,6 +51,8 @@ MODELS: dict[str, ModelSpec] = {
         completion=5.0,
         min_cacheable_tokens=4096,
         cache_breakpoints=4,
+        token_scale=1.1502,
+        template_overhead=591,
         context_tokens=200_000,
     ),
     "sonnet": ModelSpec(
@@ -58,6 +64,8 @@ MODELS: dict[str, ModelSpec] = {
         completion=10.0,
         min_cacheable_tokens=1024,
         cache_breakpoints=4,
+        token_scale=1.1502,
+        template_overhead=591,  # assumed same family as haiku
         context_tokens=1_000_000,
     ),
 }

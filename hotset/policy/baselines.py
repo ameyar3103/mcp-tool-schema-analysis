@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 from hotset.corpus.models import Tool
 from hotset.layout.serialize import canonical_tool
 from hotset.policy.base import Plan
@@ -97,3 +99,23 @@ class StaticHotSet:
 
     def plan(self, catalog: list[Tool], history: list[dict], query: str) -> Plan:
         return Plan(index=list(catalog), hot=self.hot)
+
+
+def frequency_hot_set(catalog: list[Tool], sessions, size: int) -> list[Tool]:
+    """Most-called tools in the training split. Baseline 4's whole prior."""
+    counts = Counter(t.tool for s in sessions for t in s.turns)
+    ranked = sorted(catalog, key=lambda t: (-counts[t.name], t.name))
+    return [t for t in ranked[:size] if counts[t.name]]
+
+
+class IndexOnly:
+    """Ablation: layer A and nothing else. Do models need schemas, or just names?
+
+    Index lines already carry argument names with `?` marking optionals, so this
+    tests whether the full JSON Schema is buying anything at all.
+    """
+
+    name = "index-only"
+
+    def plan(self, catalog: list[Tool], history: list[dict], query: str) -> Plan:
+        return Plan(index=list(catalog))

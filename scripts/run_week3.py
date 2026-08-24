@@ -1,0 +1,68 @@
+"""Full sweep: baselines, the index-only ablation, and cache-aware admission."""
+
+from __future__ import annotations
+
+import sys
+import uuid
+
+from hotset.config import MODELS
+from hotset.corpus.distractors import pad_catalog
+from hotset.corpus.harvest import load
+from hotset.eval.runner import run_arm, save, summarize
+from hotset.eval.tasks import load as load_tasks
+from hotset.eval.tasks import split
+from hotset.policy.adaptive import HotSet
+from hotset.policy.baselines import (
+    FullCatalog,
+    IndexOnly,
+    LazyDiscovery,
+    RagOverTools,
+    StaticHotSet,
+    frequency_hot_set,
+)
+from hotset.policy.predictors import LRUK, warm
+
+HEAD = f"{'arm':16} {'acc':>6} {'halluc':>7} {'hit':>6} {'prompt':>8} {'hops':>5} {'lat':>6} {'$/turn':>10} {'$/correct':>10}"
+# One shared prefix serves all traffic, so admission amortizes over the deployment,
+# not over a single five-turn conversation.
+HORIZON = 50
+
+
+def main(model: str = "qwen-flash", size: int = 300) -> None:
+    spec = MODELS[model]
+    base = load()
+    catalog = base if size == len(base) else pad_catalog(base, size, seed=0)
+    train, test = split(load_tasks())
+    salt = uuid.uuid4().hex[:8]
+
+    predictor = LRUK(k=2)
+    warm(predictor, ([t.tool for t in s.turns] for s in train))
+
+    arms = [
+        FullCatalog(),
+        RagOverTools(k=8),
+        LazyDiscovery(),
+        IndexOnly(),
+        StaticHotSet(frequency_hot_set(catalog, train, 16)),
+        HotSet(spec, predictor, horizon=HORIZON),
+    ]
+    print(
+        f"{model} | catalog {len(catalog)} | test {len(test)} sessions "
+        f"({sum(len(s.turns) for s in test)} turns) | salt {salt}\n\n{HEAD}"
+    )
+    for arm in arms:
+        results = run_arm(arm, spec, catalog, test, salt=salt)
+        save(results, f"{arm.name}-{model}-{len(catalog)}-{salt}")
+        m = summarize(results)
+        print(
+            f"{arm.name:16} {m['accuracy']:6.1%} {m['hallucinated']:7.1%} {m['hit_rate']:6.1%} "
+            f"{m['prompt_tokens']:8.0f} {m['hops']:5.2f} {m['latency_s']:5.1f}s "
+            f"${m['cost_per_turn']:.6f} ${m['cost_per_correct']:.6f}"
+            + (f"  ({m['errors']} err)" if m["errors"] else "")
+        )
+    if isinstance(arms[-1], HotSet):
+        print(f"\nhot set at end ({len(arms[-1].hot)}): {[t.name for t in arms[-1].hot]}")
+
+
+if __name__ == "__main__":
+    main(*(sys.argv[1:2] or []), **({"size": int(sys.argv[2])} if len(sys.argv) > 2 else {}))
