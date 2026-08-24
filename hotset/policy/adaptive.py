@@ -57,6 +57,10 @@ class HotSet:
         """What the agent actually called, which is all a deployment can see."""
         self.predictor.observe(tool)
 
+    def reset(self) -> None:
+        """New scenario. The hot set persists across sessions; only context clears."""
+        self.predictor.reset()
+
     def plan(self, catalog: list[Tool], history: list[dict], query: str) -> Plan:
         self.predictor.advance()
         if self._bm25 is None or self._bm25.tools != catalog:

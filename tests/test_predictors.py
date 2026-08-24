@@ -1,6 +1,8 @@
 """Predictor tests: the rate estimate has to mean what the controller thinks it means."""
 
-from hotset.policy.predictors import LRUK
+import pytest
+
+from hotset.policy.predictors import LRUK, Ensemble, Markov, Oracle, warm
 
 
 def _run(calls: list[str | None]) -> LRUK:
@@ -43,3 +45,60 @@ def test_ranked_is_deterministic_under_ties():
     """Two tools with identical histories must order by name, not dict insertion."""
     p = _run(["b", "a", "b", "a"])
     assert [n for n, _ in p.ranked(["b", "a"], 10)] == ["a", "b"]
+
+
+def test_markov_prefers_the_observed_successor():
+    m = Markov()
+    warm(m, [["read_file", "edit_file"]] * 10)
+    m.reset()
+    m.advance()
+    m.observe("read_file")
+    assert m.expected_uses("edit_file", 5) > m.expected_uses("read_file", 5)
+
+
+def test_markov_falls_back_to_the_marginal_without_context():
+    m = Markov()
+    warm(m, [["a", "b"], ["a", "c"]])
+    m.reset()
+    assert m.expected_uses("a", 10) == pytest.approx(10 * m._marginal("a"))
+
+
+def test_markov_does_not_chain_across_sessions():
+    """Last tool of one scenario must not become a predictor of the next scenario's first."""
+    chained, split_ = Markov(), Markov()
+    warm(chained, [["a", "b", "z", "y"]])
+    warm(split_, [["a", "b"], ["z", "y"]])
+    assert chained.edges["b"]["z"] == 1
+    assert "z" not in split_.edges.get("b", {})
+
+
+def test_markov_horizon_is_bounded_by_the_horizon():
+    """A probability sum over H turns cannot exceed H uses."""
+    m = Markov()
+    warm(m, [["a", "a", "a", "a"]] * 5)
+    m.reset()
+    m.advance()
+    m.observe("a")
+    assert 0.0 <= m.expected_uses("a", 20) <= 20.0
+
+
+def test_ensemble_averages_member_estimates():
+    lru, mk = LRUK(), Markov()
+    ens = Ensemble([lru, mk])
+    warm(ens, [["a", "b"], ["a", "b"]])
+    expected = (lru.expected_uses("a", 10) + mk.expected_uses("a", 10)) / 2
+    assert ens.expected_uses("a", 10) == pytest.approx(expected)
+
+
+def test_oracle_counts_the_actual_future():
+    o = Oracle(["a", "b", "a", "c", "a"])
+    assert o.expected_uses("a", 5) == 3.0
+    o.advance()
+    assert o.expected_uses("a", 4) == 2.0
+
+
+def test_oracle_dominates_a_learned_predictor_on_a_novel_tool():
+    """A tool never seen before scores zero under LRU-K and its true rate under oracle."""
+    future = ["new_tool"] * 4
+    assert Oracle(future).expected_uses("new_tool", 4) == 4.0
+    assert LRUK().expected_uses("new_tool", 4) == 0.0

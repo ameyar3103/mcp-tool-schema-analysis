@@ -65,6 +65,7 @@ def run_session(
     """Replay one scenario in order, keeping history so the cache can actually warm."""
     names = {t.name for t in catalog}
     sid, history, out = uuid.uuid4().hex, [], []
+    getattr(policy, "reset", lambda: None)()  # scenario boundary, not a state wipe
 
     for turn_no, turn in enumerate(session.turns):
         history.append({"role": "user", "content": turn.user})
