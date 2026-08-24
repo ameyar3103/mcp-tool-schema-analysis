@@ -138,3 +138,24 @@ def test_re_admission_reaches_a_fixpoint():
     arms, paired = _chain()
     best = frontier(arms, paired)
     assert inversions(arms, paired, best) == []
+
+
+def test_relative_drift_cancels_a_shift_shared_by_every_arm():
+    """Both arms improve in the second half; that is the suite, not either agent."""
+    from drift import relative
+
+    arm_a = {(0, i): i >= 50 for i in range(100)}
+    reference = {(0, i): i >= 50 for i in range(100)}
+    _, _, p = relative(arm_a, reference)
+    assert p == 1.0
+
+
+def test_relative_drift_catches_a_shift_in_only_one_arm():
+    """The reference holds steady while the arm collapses after the midpoint."""
+    from drift import relative
+
+    reference = dict.fromkeys(((0, i) for i in range(100)), True)
+    arm_a = {(0, i): i < 50 for i in range(100)}
+    first, second, p = relative(arm_a, reference)
+    assert first == (0, 50) and second == (50, 50)
+    assert p < 0.001

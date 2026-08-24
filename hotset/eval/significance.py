@@ -79,6 +79,20 @@ def compare(arms: dict[str, list[TurnResult]], lenient: bool = False) -> list[Co
     return out
 
 
+def fisher(a: int, b: int, c: int, d: int) -> float:
+    """Two-sided Fisher exact on a 2x2. Counts here are small, so exact beats chi-square."""
+    n, r1, r2, k = a + b + c + d, a + b, c + d, a + c
+    if not n or not r1 or not r2:
+        return 1.0
+
+    def prob(x: int) -> float:
+        return math.comb(r1, x) * math.comb(r2, k - x) / math.comb(n, k)
+
+    observed = prob(a)
+    lo, hi = max(0, k - r2), min(r1, k)
+    return min(1.0, sum(prob(x) for x in range(lo, hi + 1) if prob(x) <= observed * (1 + 1e-9)))
+
+
 def minimum_detectable(n: int, discordant_rate: float = 0.25) -> float:
     """Accuracy gap detectable at 80% power, as a fraction. Sizes future suites.
 

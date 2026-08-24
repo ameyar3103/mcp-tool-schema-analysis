@@ -15,7 +15,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from hotset.eval.significance import wilson
+from hotset.eval.significance import fisher, wilson
 from hotset.eval.spans import drift, load
 
 TRACES = Path(__file__).resolve().parents[1] / "traces"
@@ -40,6 +40,37 @@ def halves(spans) -> tuple[tuple[int, int], tuple[int, int]]:
     return (sum(flags[:mid]), mid), (sum(flags[mid:]), len(flags) - mid)
 
 
+def relative(spans, reference) -> tuple[tuple[int, int], tuple[int, int], float]:
+    """Has this arm's loss rate against a reference changed between halves?
+
+    Comparing an arm's own halves cannot separate "the agent degraded" from "the second
+    half of the suite is easier" — every arm replays the same sessions in the same
+    order, so scenario difficulty moves all of them together. What is left after
+    differencing against a reference arm is drift specific to this arm.
+    """
+    keys = sorted(set(spans) & set(reference))
+    mid = len(keys) // 2
+
+    def losses(window):
+        """Turns the reference got right and this arm did not, out of the window."""
+        return sum(reference[k] and not spans[k] for k in window), len(window)
+
+    (l1, n1), (l2, n2) = losses(keys[:mid]), losses(keys[mid:])
+    # Rate of loss, not ratio of wins to losses: an arm that agrees perfectly in the
+    # first half has no ratio to compare, but its loss rate is still a well-defined 0.
+    return (l1, n1), (l2, n2), fisher(l1, n1 - l1, l2, n2 - l2)
+
+
+def flags(spans) -> dict:
+    """Turn spans keyed by (session, turn), so two arms can be paired on the same turn."""
+    return {
+        (s.attributes.get("hotset.session"), s.attributes.get("hotset.turn")): bool(
+            s.attributes.get("hotset.correct")
+        )
+        for s in turns(spans)
+    }
+
+
 def report(arm: str, spans) -> None:
     n = len(turns(spans))
     if not n:
@@ -48,10 +79,10 @@ def report(arm: str, spans) -> None:
     (a, an), (b, bn) = halves(spans)
     alo, ahi = wilson(a, an or 1)
     blo, bhi = wilson(b, bn or 1)
-    # Non-overlapping intervals are the only drift claim this design can support.
-    verdict = "DRIFT" if bhi < alo or ahi < blo else "flat"
+    # Raw halves are reported for context only; the verdict comes from relative(), since
+    # a shift shared by every arm is the suite changing rather than the agent.
     print(f"{arm:16} n={n:4d}  first-half {a / max(an, 1):5.1%} [{alo:.1%},{ahi:.1%}]  "
-          f"second-half {b / max(bn, 1):5.1%} [{blo:.1%},{bhi:.1%}]  {verdict}")
+          f"second-half {b / max(bn, 1):5.1%} [{blo:.1%},{bhi:.1%}]")
     positions = by_position(spans)
     line = "  ".join(f"t{k}:{c / max(t, 1):.0%}({t})" for k, (c, t) in positions.items())
     print(f"{'':16} by position   {line}")
@@ -60,13 +91,26 @@ def report(arm: str, spans) -> None:
         print(f"{'':16} rolling(20)   min {min(series):.0%}  max {max(series):.0%}")
 
 
-def main(salt: str) -> None:
+def main(salt: str, reference: str = "full-catalog") -> None:
     paths = sorted(TRACES.glob(f"*-{salt}.jsonl"))
     if not paths:
         raise SystemExit(f"no traces for salt {salt} in {TRACES}")
+    arms = {}
     for path in paths:
         spans = load(path)
-        report(spans[0].attributes.get("hotset.arm", path.stem), spans)
+        arms[spans[0].attributes.get("hotset.arm", path.stem)] = spans
+    for name, spans in arms.items():
+        report(name, spans)
+    ref = arms.get(reference) or arms[next(iter(arms))]
+    reference = next(n for n, v in arms.items() if v is ref)
+    print(f"\nregression against {reference} (turns lost per half, Fisher exact)")
+    for name, spans in arms.items():
+        if name == reference:
+            continue
+        first, second, p = relative(flags(spans), flags(ref))
+        verdict = "DRIFT" if p < 0.05 else "flat"
+        print(f"{name:16} lost {first[0]:3}/{first[1]:<3} then {second[0]:3}/{second[1]:<3}"
+              f"  p={p:.3f}  {verdict}")
 
 
 if __name__ == "__main__":

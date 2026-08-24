@@ -1,5 +1,7 @@
+import pytest
+
 from hotset.eval.runner import TurnResult
-from hotset.eval.significance import compare, mcnemar, minimum_detectable, outcomes, wilson
+from hotset.eval.significance import compare, fisher, mcnemar, minimum_detectable, outcomes, wilson
 
 
 def _res(session: int, turn: int, correct: bool, error: str = "") -> TurnResult:
@@ -79,3 +81,25 @@ def test_twin_is_scored_apart_from_correct_and_hallucinated():
     assert m["twin"] == 1.0
     assert m["lenient_accuracy"] == 1.0
     assert m["hallucinated"] == 0.0
+
+
+def test_fisher_matches_the_tea_tasting_table():
+    """The textbook 2x2; a wrong tail sum shows up here immediately."""
+    assert fisher(3, 1, 1, 3) == pytest.approx(0.4857, abs=1e-4)
+
+
+def test_fisher_is_symmetric_under_row_and_column_swaps():
+    assert fisher(3, 1, 1, 3) == pytest.approx(fisher(1, 3, 3, 1))
+    assert fisher(7, 2, 3, 8) == pytest.approx(fisher(3, 8, 7, 2))
+
+
+def test_fisher_separates_a_clean_split():
+    assert fisher(10, 0, 0, 10) < 0.001
+
+
+def test_fisher_is_one_when_the_proportions_match():
+    assert fisher(5, 5, 5, 5) == pytest.approx(1.0)
+
+
+def test_fisher_handles_an_empty_margin():
+    assert fisher(0, 0, 4, 4) == 1.0
