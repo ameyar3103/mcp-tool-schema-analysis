@@ -13,6 +13,7 @@ dependencies = [
     "duckdb",          # run/metric store for sweeps
     "pyyaml",          # experiment configs
     "typer",           # CLI entrypoints
+    "mcp",             # stdio client for harvesting tools/list
 ]
 
 [project.optional-dependencies]
