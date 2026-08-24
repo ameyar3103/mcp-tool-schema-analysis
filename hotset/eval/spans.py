@@ -40,10 +40,10 @@ class Span(BaseModel):
 
 
 class Recorder:
-    """Collects spans for one arm. Not thread-safe by design.
+    """Collects spans for one arm. Single-threaded by construction, not by locking.
 
-    Stateful policies already force single-worker execution, and the arms that do run
-    concurrently each get their own recorder, so a lock would only add contention.
+    Each parallel session gets its own recorder and they are merged after the join, so
+    no span list is ever shared between workers and a lock would only add contention.
     """
 
     def __init__(self, arm: str, model: str) -> None:

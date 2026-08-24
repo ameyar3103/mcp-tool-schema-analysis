@@ -119,7 +119,8 @@ def run_session(
                 history.append(
                     {
                         "role": "tool",
-                        "tool_call_id": message["tool_calls"][0]["id"],
+                        # Not every provider returns an id; a missing one must not lose the run.
+                        "tool_call_id": message["tool_calls"][0].get("id") or f"call_{hop}",
                         "content": policy.serve(catalog, args),
                     }
                 )
@@ -137,7 +138,7 @@ def run_session(
             history.append(
                 {
                     "role": "tool",
-                    "tool_call_id": message["tool_calls"][0]["id"],
+                    "tool_call_id": message["tool_calls"][0].get("id") or f"call_{hop}",
                     "content": "OK",
                 }
             )
@@ -166,6 +167,7 @@ def run_arm(
     sessions: list[Session],
     workers: int = 4,
     salt: str = "",
+    recorder: Recorder | None = None,
 ):
     """Sessions run in parallel; turns inside one session stay strictly ordered.
 
@@ -173,12 +175,19 @@ def run_arm(
     """
     if getattr(policy, "stateful", False):
         workers = 1
+    # One recorder per session rather than one shared across threads: a session is
+    # single-threaded, so no span list is ever touched by two workers at once.
+    books = [Recorder(policy.name, spec.slug) for _ in sessions]
     with ThreadPoolExecutor(max_workers=workers) as pool:
         jobs = [
-            pool.submit(run_session, policy, spec, catalog, s, i, salt)
+            pool.submit(run_session, policy, spec, catalog, s, i, salt, books[i])
             for i, s in enumerate(sessions)
         ]
-        return [r for job in jobs for r in job.result()]
+        results = [r for job in jobs for r in job.result()]
+    if recorder is not None:
+        for book in books:
+            recorder.spans.extend(book.spans)  # merged on the main thread, after the join
+    return results
 
 
 def save(results: list[TurnResult], tag: str) -> Path:
