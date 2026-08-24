@@ -85,10 +85,13 @@ def main(
             f"${m['cost_per_turn']:.6f} ${m['cost_per_correct']:.6f}"
             + (f"  ({m['errors']} err)" if m["errors"] else "")
         )
-    print()
-    for c in compare(collected):
-        mark = "  <-- significant" if c.significant else ""
-        print(f"{c.a:16} vs {c.b:16} {c.a_only:3}/{c.b_only:<3}  p={c.p_value:.3f}{mark}")
+    # Both views: on a catalog padded with near-duplicates, a strict-only comparison
+    # measures which twin the label picked as much as it measures the predictor.
+    for lenient in (False, True):
+        print(f"\n{'lenient (twin counts as correct)' if lenient else 'strict'}")
+        for c in compare(collected, lenient):
+            mark = "  <-- significant" if c.significant else ""
+            print(f"{c.a:16} vs {c.b:16} {c.a_only:3}/{c.b_only:<3}  p={c.p_value:.3f}{mark}")
 
 
 if __name__ == "__main__":
