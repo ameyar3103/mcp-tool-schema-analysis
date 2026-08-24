@@ -92,13 +92,23 @@ def test_ensemble_averages_member_estimates():
 
 def test_oracle_counts_the_actual_future():
     o = Oracle(["a", "b", "a", "c", "a"])
+    o.advance()  # planning turn 0
     assert o.expected_uses("a", 5) == 3.0
-    o.advance()
+    o.advance()  # planning turn 1
     assert o.expected_uses("a", 4) == 2.0
+
+
+def test_oracle_sees_the_turn_being_planned():
+    """The tool about to be called is exactly the one admission should catch."""
+    o = Oracle(["target"])
+    o.advance()
+    assert o.expected_uses("target", 50) == 1.0
 
 
 def test_oracle_dominates_a_learned_predictor_on_a_novel_tool():
     """A tool never seen before scores zero under LRU-K and its true rate under oracle."""
     future = ["new_tool"] * 4
-    assert Oracle(future).expected_uses("new_tool", 4) == 4.0
+    o = Oracle(future)
+    o.advance()
+    assert o.expected_uses("new_tool", 4) == 4.0
     assert LRUK().expected_uses("new_tool", 4) == 0.0

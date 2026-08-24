@@ -168,7 +168,9 @@ class Oracle:
 
     def __init__(self, future: list[str]) -> None:
         self.future = future  # the whole eval trace, flattened, in order
-        self.cursor = 0
+        # Starts before the trace: plan() advances once *before* the current turn is
+        # served, so after that advance the cursor must sit on the turn being planned.
+        self.cursor = -1
 
     def advance(self) -> None:
         self.cursor += 1
@@ -180,7 +182,8 @@ class Oracle:
         """Nothing to learn: the future is already known."""
 
     def expected_uses(self, tool: str, horizon: int) -> float:
-        window = self.future[self.cursor : self.cursor + horizon]
+        start = max(self.cursor, 0)
+        window = self.future[start : start + horizon]
         return float(window.count(tool))
 
     def ranked(self, names: list[str], horizon: int) -> list[tuple[str, float]]:
