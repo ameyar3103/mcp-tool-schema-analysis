@@ -62,7 +62,8 @@ worth of fixed cost incurred by having a `tools` field at all, before any tool.
 | full catalog | 45.3% | 7.4% | 95.3% | 37,537 | 0.00 | $0.000286 | $0.000631 |
 | RAG-over-tools | 36.8% | 18.9% | 11.8% | 1,875 | 0.00 | $0.000070 | $0.000190 |
 
-**Full catalog collapses at scale.** 86.0% at 76 tools → 45.3% at 300, while
+**Full catalog collapses at scale.** 86.0% at 76 tools → 45.3% at 300 (unmatched
+held-out sets, so read the 41-point drop as an effect and not a measurement), while
 remaining the most expensive arm — the documented context-rot failure, reproduced.
 Sending everything is not a strong baseline, it is the worst one on cost per
 correct call by a factor of 4.7.
@@ -89,7 +90,7 @@ uncached tokens and no breakpoint control, caching schemas genuinely does not pa
 if it were. HotSet dominates every other arm; against lazy discovery it trades 8.4
 accuracy points for 27% lower cost per correct call.
 
-## Sweep — claude-haiku-4.5, 300 tools, same 95 held-out turns
+## Sweep — claude-haiku-4.5, 300 tools, 95 held-out turns
 
 | arm | accuracy | halluc | hit | prompt tok | hops | $/turn | **$/correct** |
 |---|---|---|---|---|---|---|---|
@@ -133,12 +134,22 @@ $0.003436 to $0.010023 per correct call, a 2.9× spread at indistinguishable acc
 the leader, because 94.5% of 43,785 tokens is more absolute spend than 92.3% of
 13,116. Hit rate is a ratio; the bill is not.
 
-**Hallucination is a capability, not a layout property.** Every Haiku arm scored
-0.0%, including full catalog and RAG, which hallucinated 7.4% and 18.9% on
-qwen-flash under byte-identical prompts. Layout defends a weak model against a large
-catalog; it does not need to defend a strong one.
+**Hallucination looks like a capability, not a layout property.** Every Haiku arm
+scored 0.0%, including full catalog and RAG, which hallucinated 7.4% and 18.9% on
+qwen-flash. Stated cautiously because the two sweeps did not share a held-out set
+(see below); the effect is far larger than the split could explain, but it is not
+yet a matched comparison.
 
 > Both sweeps ran on distractor pool **v1**, which sampled differentiator clauses
 > uniformly and so occasionally handed a browser tool "Fails instead of overwriting
 > existing entries". v2 keys the pool by server. Padded catalogs are built at run time,
 > so v1 and v2 numbers must not be pooled — `CORPUS_VERSION` records which is live.
+
+> **Split defect, and what it does and does not invalidate.** `split()` keyed on
+> `hash((seed, scenario))`, and CPython salts string hashing per process, so these two
+> sweeps drew different held-out sets — they share only 6 of 95 ground-truth labels.
+> Within a sweep all six arms run in one process and one split, so every paired McNemar
+> result above stands. What does not stand is any comparison of a qwen-flash accuracy to
+> a haiku accuracy. The break-even table is unaffected: `n*` depends on token counts,
+> prices and the horizon, not on which turns were sampled. Fixed with a blake2b key and
+> a subprocess regression test; both sweeps are being re-run on the stable split.
