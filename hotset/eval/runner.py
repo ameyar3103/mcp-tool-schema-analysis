@@ -156,6 +156,11 @@ def save(results: list[TurnResult], tag: str) -> Path:
     return path
 
 
+def load(path: Path) -> list[TurnResult]:
+    """Read an arm back for offline analysis, so tests never re-spend on the API."""
+    return [TurnResult(**json.loads(line)) for line in path.read_text().splitlines() if line]
+
+
 def summarize(results: list[TurnResult]) -> dict:
     """The headline metric vector for one arm."""
     scored = [r for r in results if not r.error]

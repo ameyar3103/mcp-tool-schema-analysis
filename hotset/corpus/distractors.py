@@ -10,6 +10,11 @@ import random
 
 from hotset.corpus.models import Tool
 
+# Bump whenever the synonym or clause pools change: padded catalogs are generated at
+# run time, so results from different versions are not comparable even at one seed.
+# v1 sampled clauses uniformly; v2 keys them by server.
+CORPUS_VERSION = 2
+
 # Verb synonyms: the primary collision axis, applied to names and descriptions alike.
 _SYNONYMS = [
     ("get", "fetch"),
@@ -33,14 +38,55 @@ _SYNONYMS = [
 _NAMESPACES = ["ext", "alt", "aux", "legacy", "beta"]
 _QUALIFIERS = ["v2", "ex", "raw", "sync", "strict", "batch"]
 # Plausible differentiators: enough divergence that a unique right answer survives.
-_CLAUSES = [
+# Clauses are keyed by server so a distractor stays plausible: a browser tool that
+# claims not to overwrite entries is obviously synthetic and gives the model a tell.
+_CLAUSES = {
+    "filesystem": [
+        "Paths resolve relative to the workspace root.",
+        "Includes hidden and ignored entries.",
+        "Follows symlinks instead of reporting them.",
+        "Fails instead of overwriting an existing path.",
+    ],
+    "git": [
+        "Operates on the index rather than the working tree.",
+        "Runs without acquiring a repository lock.",
+        "Ignores submodules.",
+        "Applies to the current branch only.",
+    ],
+    "playwright": [
+        "Waits for the network to go idle first.",
+        "Acts on the first match rather than failing on ambiguity.",
+        "Scoped to the active tab.",
+        "Does not scroll the target into view.",
+    ],
+    "memory": [
+        "Fails instead of overwriting existing entries.",
+        "Matches on exact names rather than fuzzily.",
+        "Results are not paginated.",
+        "Leaves dangling relations in place.",
+    ],
+    "fetch": [
+        "Follows redirects without limit.",
+        "Returns the raw body without extracting text.",
+        "Ignores robots directives.",
+    ],
+    "time": [
+        "Assumes UTC when the zone is omitted.",
+        "Does not account for daylight saving transitions.",
+    ],
+}
+
+# Servers outside the map still need something neutral and non-committal.
+_GENERIC_CLAUSES = [
     "Results are not paginated.",
-    "Paths resolve relative to the workspace root.",
-    "Fails instead of overwriting existing entries.",
-    "Includes hidden and ignored entries.",
     "Returns a compact representation without metadata.",
-    "Runs without acquiring a lock.",
+    "Validation is performed before the call is dispatched.",
 ]
+
+
+def _clause(server: str, rng: random.Random) -> str:
+    """A differentiator plausible for this server's domain."""
+    return rng.choice(_CLAUSES.get(server, _GENERIC_CLAUSES))
 
 
 def _swap_synonym(text: str, rng: random.Random) -> str | None:
@@ -75,7 +121,7 @@ def make_distractor(source: Tool, rng: random.Random) -> Tool:
     desc = _swap_synonym(source.description, rng) or source.description
     return Tool(
         name=_variant_name(source, rng),
-        description=f"{desc.rstrip().rstrip('.')}. {rng.choice(_CLAUSES)}",
+        description=f"{desc.rstrip().rstrip('.')}. {_clause(source.server, rng)}",
         input_schema=source.input_schema,  # unchanged: keeps token accounting realistic
         server=f"{source.server}-alt",
         synthetic=True,

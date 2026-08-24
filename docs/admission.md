@@ -73,9 +73,10 @@ accurate); HotSet appends them as a suffix behind a stable prefix (94.4% hit, 68
 accurate). Nothing about the retrieval changed — only where the bytes went.
 
 **The tail is free.** `hotset` and `index only` cost exactly the same $0.000093,
-and differ only by three tail-loaded schemas per turn. Those three schemas are worth
-9.5 accuracy points at no measurable cost, because a suffix does not disturb the
-cached prefix.
+and differ only by three tail-loaded schemas per turn. The 9.5-point accuracy gap is
+*not* significant (McNemar 18/9, p=0.122), so the honest claim is the cost one: a
+suffix buys schemas without disturbing the cached prefix, and the accuracy effect is
+directionally positive but under-powered at n=95.
 
 **The controller admitted nothing, correctly.** Alibaba ignores the second
 breakpoint, so `S` is the entire 8,570-token prefix and `n*` ≈ 74 — above the 50
@@ -87,3 +88,57 @@ uncached tokens and no breakpoint control, caching schemas genuinely does not pa
 1.05 extra round trips per turn. It is not dominated, and should not be reported as
 if it were. HotSet dominates every other arm; against lazy discovery it trades 8.4
 accuracy points for 27% lower cost per correct call.
+
+## Sweep — claude-haiku-4.5, 300 tools, same 95 held-out turns
+
+| arm | accuracy | halluc | hit | prompt tok | hops | $/turn | **$/correct** |
+|---|---|---|---|---|---|---|---|
+| index only | **81.1%** | 0.0% | 92.3% | 13,116 | 0.00 | $0.002785 | **$0.003436** |
+| **hotset (LRU-K)** | 75.8% | 0.0% | 90.8% | 14,049 | 0.00 | $0.003103 | $0.004095 |
+| static hot set | 75.8% | 0.0% | 95.6% | 15,478 | 0.00 | $0.002649 | $0.003495 |
+| full catalog | 73.7% | 0.0% | 94.5% | 43,785 | 0.00 | $0.007385 | $0.010023 |
+| lazy discovery | 73.7% | 0.0% | **0.0%** | 5,299 | 0.92 | $0.006022 | $0.008173 |
+| RAG-over-tools | 38.9% | 0.0% | **0.0%** | 2,280 | 0.00 | $0.002841 | $0.007295 |
+
+**Admission fires here, and the closed form said it would.** Same catalog, same
+traffic, same predictor — HotSet admitted nothing on Alibaba and three tools on
+Anthropic. The only thing that changed is who honours a second cache breakpoint:
+
+| tool | schema `P` | `n*` on Haiku | `n*` on qwen-flash |
+|---|---|---|---|
+| `enumerate_directory_with_sizes` | 159 | 7.8 | 98.1 |
+| `move_file` | 124 | 8.6 | 122.9 |
+| `get_file_info` | 106 | 9.2 | 142.1 |
+
+With four breakpoints the rewritten segment `S` is the 389-token hot block; with one
+it is the whole 11,641-token prefix. A 50-turn horizon can supply at most 50 uses, so
+one provider clears the bar by 6× and the other misses it by 2×. No threshold was
+tuned per model: `n* = S·(w−c)/(P·u) + T·c/u` was derived in week 1 and both
+decisions fall out of it.
+
+**Token reduction has a floor, and past it caching stops existing.** RAG-over-tools
+and lazy discovery post **0.0%** hit rates — not a bug, and not the 11–16% they score
+on Alibaba. Haiku's minimum cacheable prefix is 4,096 tokens; both arms build
+prefixes below it, so caching silently no-ops and every token is billed at the
+uncached rate. RAG ends up *more expensive per correct call* than three arms that
+send 6× more tokens. Shrinking the prompt is only a win above the provider's floor.
+
+**At n=95, the top five arms are one arm.** Paired McNemar (`scripts/significance.py`)
+separates only RAG-over-tools; every other pair sits at p ≥ 0.118, and the smallest
+gap this suite can detect at 80% power is 7.2%. The 81.1% vs 73.7% spread is real
+enough to act on and too small to publish as a ranking. What *is* separable is cost:
+$0.003436 to $0.010023 per correct call, a 2.9× spread at indistinguishable accuracy.
+
+**Full catalog is the arm caching cannot save.** It hits 94.5% and still costs 2.9×
+the leader, because 94.5% of 43,785 tokens is more absolute spend than 92.3% of
+13,116. Hit rate is a ratio; the bill is not.
+
+**Hallucination is a capability, not a layout property.** Every Haiku arm scored
+0.0%, including full catalog and RAG, which hallucinated 7.4% and 18.9% on
+qwen-flash under byte-identical prompts. Layout defends a weak model against a large
+catalog; it does not need to defend a strong one.
+
+> Both sweeps ran on distractor pool **v1**, which sampled differentiator clauses
+> uniformly and so occasionally handed a browser tool "Fails instead of overwriting
+> existing entries". v2 keys the pool by server. Padded catalogs are built at run time,
+> so v1 and v2 numbers must not be pooled — `CORPUS_VERSION` records which is live.
