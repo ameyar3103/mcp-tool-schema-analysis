@@ -105,6 +105,7 @@ uv run python scripts/simulate_admission.py haiku 300 2 0   # admission, no API 
 uv run python scripts/run_week3.py qwen-flash 300 2 0       # full sweep (needs a key)
 uv run python scripts/plot_pareto.py <salt> out.png --lenient
 uv run python scripts/drift.py <salt>
+uv run python scripts/twin_exposure.py qwen-flash 300 2   # plan replay, no API calls
 ```
 
 An OpenRouter key goes in a gitignored `.env`. Everything in CI runs without one.
@@ -121,10 +122,11 @@ tool from an equivalent one; lenient cannot tell a right tool from a lucky one.
 
 **Strict accuracy is a property of the corpus, not just the router.** Re-running the
 same 310 turns against the same target tools, changing only the disambiguating clause on
-synthetic distractors, moved `index-only` by 9.0 points strict while its lenient accuracy
-moved 2.0. Twin confusion rose for every arm, monotonically in how much catalog the arm
-exposes — +1.0pt for `static-hot-set`, +11.0pt for `full-catalog` (p=0.0003). Nothing
-about any arm changed. See [docs/corpus.md](docs/corpus.md).
+synthetic distractors, cost `hotset` **11.6 points of strict accuracy** while its lenient
+accuracy moved 1.0 — and an offline plan replay confirms the arm's exposure to the
+target's twin was identical across both runs. Twin confusion rose for all six arms, and
+the sign of the strict change is not even consistent: `full-catalog` gained 3.2 points
+over the same treatment. See [docs/corpus.md](docs/corpus.md).
 
 **Every ranking carries its detection floor.** Under paired McNemar, power depends on
 discordant pairs rather than sample size; at n=310 the minimum detectable gap is 4.0%.
