@@ -26,19 +26,21 @@ def collect(salt: str) -> dict[str, list]:
 
 def main() -> None:
     salt = sys.argv[1]
+    lenient = "--lenient" in sys.argv
     arms = collect(salt)
     if not arms:
         raise SystemExit(f"no results for salt {salt}")
-    scored = {name: outcomes(rs) for name, rs in arms.items()}
+    scored = {name: outcomes(rs, lenient) for name, rs in arms.items()}
     n = max(len(v) for v in scored.values())
     model = next(iter(arms.values()))[0].model
-    print(f"{model} | {n} scored turns | salt {salt}\n")
+    view = "lenient (twin counts as correct)" if lenient else "strict"
+    print(f"{model} | {n} scored turns | salt {salt} | {view}\n")
     for name in sorted(scored, key=lambda k: -sum(scored[k].values())):
         k, total = sum(scored[name].values()), len(scored[name])
         lo, hi = wilson(k, total)
         print(f"{name:16} {k:3}/{total:<3} {k / total:6.1%}  95% CI [{lo:5.1%}, {hi:5.1%}]")
     print()
-    for c in compare(arms):
+    for c in compare(arms, lenient):
         mark = "  <-- significant" if c.significant else ""
         print(f"{c.a:16} vs {c.b:16} {c.a_only:3}/{c.b_only:<3}  p={c.p_value:.3f}{mark}")
     print(f"\nsmallest gap detectable at 80% power, n={n}: {minimum_detectable(n):.1%}")

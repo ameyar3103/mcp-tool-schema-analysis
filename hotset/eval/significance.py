@@ -32,9 +32,16 @@ class Comparison:
         return self.p_value < 0.05
 
 
-def outcomes(results: list[TurnResult]) -> dict[tuple[int, int], bool]:
-    """Turn key to correctness. Transport errors are dropped, not scored as wrong."""
-    return {(r.session, r.turn): r.correct for r in results if not r.error}
+def outcomes(results: list[TurnResult], lenient: bool = False) -> dict[tuple[int, int], bool]:
+    """Turn key to correctness. Transport errors are dropped, not scored as wrong.
+
+    Under `lenient`, picking a synthetic twin counts as correct. The two views answer
+    different questions: strict asks whether the arm found the labeled tool, lenient
+    asks whether it found a tool that does the job. An arm holding 225 near-duplicates
+    in context loses the strict comparison for a reason that has nothing to do with
+    routing, so a strict-only result cannot separate the two explanations.
+    """
+    return {(r.session, r.turn): (r.correct or (lenient and r.twin)) for r in results if not r.error}
 
 
 def wilson(correct: int, total: int) -> tuple[float, float]:
@@ -60,9 +67,9 @@ def mcnemar(a: dict[tuple[int, int], bool], b: dict[tuple[int, int], bool]) -> t
     return a_only, b_only, min(1.0, 2 * tail / 2**n)
 
 
-def compare(arms: dict[str, list[TurnResult]]) -> list[Comparison]:
+def compare(arms: dict[str, list[TurnResult]], lenient: bool = False) -> list[Comparison]:
     """Every pair, ordered by accuracy so the strongest arm leads each comparison."""
-    scored = {name: outcomes(rs) for name, rs in arms.items()}
+    scored = {name: outcomes(rs, lenient) for name, rs in arms.items()}
     order = sorted(scored, key=lambda n: -sum(scored[n].values()))
     out = []
     for i, a in enumerate(order):
