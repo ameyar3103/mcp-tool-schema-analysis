@@ -51,59 +51,57 @@ against live usage (R² ≈ 1.00 over three prefix sizes):
 The intercept is provider-injected tool-use boilerplate — roughly five schemas'
 worth of fixed cost incurred by having a `tools` field at all, before any tool.
 
-## Sweep — qwen3.7-flash, 300 tools, 95 held-out turns
+## Sweep — qwen3.7-flash, 300 tools, 310 held-out turns (salt `97b45e2a`)
 
-| arm | accuracy | halluc | hit | prompt tok | hops | $/turn | **$/correct** |
+| arm | strict | lenient | hit | prompt tok | hops | $/turn | $/correct |
 |---|---|---|---|---|---|---|---|
-| lazy discovery | **76.8%** | 0.0% | 16.1% | 4,477 | 1.05 | $0.000128 | $0.000167 |
-| **hotset (LRU-K)** | 68.4% | 0.0% | 94.4% | 11,819 | 0.00 | $0.000093 | **$0.000135** |
-| static hot set | 66.3% | 0.0% | 95.5% | 13,279 | 0.00 | $0.000103 | $0.000155 |
-| index only | 58.9% | 2.1% | 94.1% | 11,344 | 0.00 | $0.000093 | $0.000159 |
-| full catalog | 45.3% | 7.4% | 95.3% | 37,537 | 0.00 | $0.000286 | $0.000631 |
-| RAG-over-tools | 36.8% | 18.9% | 11.8% | 1,875 | 0.00 | $0.000070 | $0.000190 |
+| lazy discovery | **55.8%** | **61.9%** | 15.7% | 4,262 | 0.96 | $0.000123 | $0.000220 |
+| static hot set | 43.5% | 58.1% | 97.4% | 13,769 | 0.00 | $0.000099 | **$0.000227** |
+| full catalog | 36.5% | 57.7% | 98.5% | 39,193 | 0.00 | $0.000258 | $0.000709 |
+| RAG-over-tools | 33.2% | 52.3% | 5.1% | 2,060 | 0.00 | **$0.000080** | $0.000242 |
+| index only | 31.6% | 54.5% | 97.2% | 11,793 | 0.00 | $0.000086 | $0.000271 |
+| hotset (LRU-K) | 31.0% | **61.9%** | 94.0% | 12,357 | 0.00 | $0.000099 | $0.000321 |
 
-**Full catalog collapses at scale.** 86.0% at 76 tools → 45.3% at 300 (unmatched
-held-out sets, so read the 41-point drop as an effect and not a measurement), while
-remaining the most expensive arm — the documented context-rot failure, reproduced.
-Sending everything is not a strong baseline, it is the worst one on cost per
-correct call by a factor of 4.7.
+**The controller admitted nothing, correctly.** Alibaba ignores the second cache
+breakpoint, so `S` is the whole 11,641-token prefix and `n*` lands at 98–142 uses over a
+50-turn horizon. The workload's peak use of any tool in any 50-turn window is 4. The
+oracle predictor, given the actual future, also admits nothing — which is how we know
+this is the economics refusing rather than the predictor failing.
 
-**Placement beats retrieval.** RAG-over-tools and HotSet run the *same* BM25 over
-the *same* catalog. RAG rebuilds the prefix around the results (11.8% hit, 36.8%
-accurate); HotSet appends them as a suffix behind a stable prefix (94.4% hit, 68.4%
-accurate). Nothing about the retrieval changed — only where the bytes went.
+**Placement beats retrieval.** RAG-over-tools and HotSet run the *same* BM25 index over
+the *same* catalog. RAG rebuilds the prefix around its results (5.1% hit); HotSet appends
+a suffix behind a stable prefix (94.0% hit). Nothing about the retrieval changed — only
+where the bytes went. On lenient accuracy HotSet leads by 9.6 points (p=0.0032).
 
-**The tail is free.** `hotset` and `index only` cost exactly the same $0.000093,
-and differ only by three tail-loaded schemas per turn. The 9.5-point accuracy gap is
-*not* significant (McNemar 18/9, p=0.122), so the honest claim is the cost one: a
-suffix buys schemas without disturbing the cached prefix, and the accuracy effect is
-directionally positive but under-powered at n=95.
+**Sending everything is not a strong baseline.** The full catalog is the most expensive
+arm by 2.1–3.2× and is not more accurate than HotSet (57.7% vs 61.9% lenient, p=0.223)
+while sending 3.2× the tokens. Its 98.5% hit rate does not save it: a hit rate is a
+ratio, and the bill is not.
 
-**The controller admitted nothing, correctly.** Alibaba ignores the second
-breakpoint, so `S` is the entire 8,570-token prefix and `n*` ≈ 74 — above the 50
-uses a 50-turn horizon can possibly supply. HotSet therefore reduces to index + tail
-on this provider. That is the economics working, not failing: on a model with cheap
-uncached tokens and no breakpoint control, caching schemas genuinely does not pay.
+**On lenient accuracy the frontier is `RAG-over-tools`, `hotset`, `lazy discovery`.**
+`index-only` and `static hot set` fall off — cheaper arms tie them. HotSet is on the
+frontier at 3.2× fewer prompt tokens and 2.6× lower cost than the full catalog.
 
-**Honest Pareto.** Lazy discovery is more accurate (76.8%) at 38% higher cost and
-1.05 extra round trips per turn. It is not dominated, and should not be reported as
-if it were. HotSet dominates every other arm; against lazy discovery it trades 8.4
-accuracy points for 27% lower cost per correct call.
+## Sweep — claude-haiku-4.5, 300 tools, 310 held-out turns (salt `52cbabb1`)
 
-## Sweep — claude-haiku-4.5, 300 tools, 95 held-out turns
+| arm | strict | twin | lenient | hit | prompt tok | hops | $/turn | $/correct |
+|---|---|---|---|---|---|---|---|---|
+| static hot set | **42.9%** | 11.9% | 54.8% | 96.4% | 15,954 | 0.00 | $0.002662 | **$0.006204** |
+| full catalog | 41.6% | 14.8% | **56.5%** | 97.9% | 45,681 | 0.00 | $0.006011 | $0.014444 |
+| index only | 37.7% | 18.7% | **56.5%** | 94.7% | 13,651 | 0.00 | **$0.002599** | $0.006888 |
+| lazy discovery | 36.8% | 7.7% | 44.5% | 0.0% | 5,130 | 0.85 | $0.005976 | $0.016251 |
+| hotset (LRU-K) | 31.6% | 21.9% | 53.5% | 91.4% | 14,572 | 0.00 | $0.003184 | $0.010071 |
+| RAG-over-tools | 22.6% | 8.4% | 31.0% | 0.9% | 2,531 | 0.00 | $0.003219 | $0.014254 |
 
-| arm | accuracy | halluc | hit | prompt tok | hops | $/turn | **$/correct** |
-|---|---|---|---|---|---|---|---|
-| index only | **81.1%** | 0.0% | 92.3% | 13,116 | 0.00 | $0.002785 | **$0.003436** |
-| **hotset (LRU-K)** | 75.8% | 0.0% | 90.8% | 14,049 | 0.00 | $0.003103 | $0.004095 |
-| static hot set | 75.8% | 0.0% | 95.6% | 15,478 | 0.00 | $0.002649 | $0.003495 |
-| full catalog | 73.7% | 0.0% | 94.5% | 43,785 | 0.00 | $0.007385 | $0.010023 |
-| lazy discovery | 73.7% | 0.0% | **0.0%** | 5,299 | 0.92 | $0.006022 | $0.008173 |
-| RAG-over-tools | 38.9% | 0.0% | **0.0%** | 2,280 | 0.00 | $0.002841 | $0.007295 |
+**Layer B buys nothing on this model.** `index-only` and `full-catalog` both score
+**175/310** lenient — 16 discordant pairs each way, **p = 1.0000**. Dropping every JSON
+Schema and keeping only tool names with argument names costs exactly zero accuracy, at
+**43% of the cost and 30% of the prompt tokens**. That is an exact tie, not rounding.
 
-**Admission fires here, and the closed form said it would.** Same catalog, same
-traffic, same predictor — HotSet admitted nothing on Alibaba and three tools on
-Anthropic. The only thing that changed is who honours a second cache breakpoint:
+**Admission fires here, as the closed form said it would.** Same catalog, same traffic,
+same predictor: HotSet admitted nothing on Alibaba and three tools on Anthropic
+(`add_observations`, `create_entities`, `find_nodes`). The only thing that changed is
+who honours a second cache breakpoint.
 
 | tool | schema `P` | `n*` on Haiku | `n*` on qwen-flash |
 |---|---|---|---|
@@ -111,45 +109,35 @@ Anthropic. The only thing that changed is who honours a second cache breakpoint:
 | `move_file` | 124 | 8.6 | 122.9 |
 | `get_file_info` | 106 | 9.2 | 142.1 |
 
-With four breakpoints the rewritten segment `S` is the 389-token hot block; with one
-it is the whole 11,641-token prefix. A 50-turn horizon can supply at most 50 uses, so
-one provider clears the bar by 6× and the other misses it by 2×. No threshold was
-tuned per model: `n* = S·(w−c)/(P·u) + T·c/u` was derived in week 1 and both
-decisions fall out of it.
+With a second breakpoint the rewritten segment `S` is the 389-token hot block; without
+one it is the whole 11,641-token prefix. A 50-turn horizon can supply 8 uses of a tool
+but not 98, so one provider clears the bar by 6× and the other misses by 2×. No
+per-model tuning: the price ratio decides.
 
-**Token reduction has a floor, and past it caching stops existing.** RAG-over-tools
-and lazy discovery post **0.0%** hit rates — not a bug, and not the 11–16% they score
-on Alibaba. Haiku's minimum cacheable prefix is 4,096 tokens; both arms build
-prefixes below it, so caching silently no-ops and every token is billed at the
-uncached rate. RAG ends up *more expensive per correct call* than three arms that
-send 6× more tokens. Shrinking the prompt is only a win above the provider's floor.
+**Token reduction has a floor.** RAG-over-tools and lazy discovery post 0.9% and 0.0%
+cache hit against 91–98% elsewhere. Haiku's minimum cacheable prefix is 4,096 tokens;
+both arms build prefixes near or below it, so caching silently no-ops and every token
+is billed uncached. RAG ends up costing more per correct call ($0.014254) than
+`index-only` ($0.006888) while sending 5× fewer tokens.
 
-**At n=95, the top five arms are one arm.** Paired McNemar (`scripts/significance.py`)
-separates only RAG-over-tools; every other pair sits at p ≥ 0.118, and the smallest
-gap this suite can detect at 80% power is 7.2%. The 81.1% vs 73.7% spread is real
-enough to act on and too small to publish as a ranking. What *is* separable is cost:
-$0.003436 to $0.010023 per correct call, a 2.9× spread at indistinguishable accuracy.
+**Strict accuracy is measuring the labels.** Twin selection runs 7.7–21.9% per arm and
+is worst for HotSet, whose small hot set often holds one of a twin pair and not the
+other: 31.6% strict against 53.5% lenient. Under lenient scoring HotSet is
+indistinguishable from the full catalog (p=0.2624) at 47% of the token count; under
+strict scoring it appears to lose badly (p=0.0003). Only the lenient comparison is
+about routing.
 
-**Full catalog is the arm caching cannot save.** It hits 94.5% and still costs 2.9×
-the leader, because 94.5% of 43,785 tokens is more absolute spend than 92.3% of
-13,116. Hit rate is a ratio; the bill is not.
+**The frontier is one arm.** Lenient statistical dominance leaves `index-only` alone:
+nothing is both cheaper and not-significantly-worse. Across a 2.3× cost range and a 3.3×
+prompt-size range, five of six arms are statistically one arm on accuracy — the minimum
+detectable gap at n=310 is 4.0%. Cost is the discriminator, again.
 
-**Hallucination looks like a capability, not a layout property.** Every Haiku arm
-scored 0.0%, including full catalog and RAG, which hallucinated 7.4% and 18.9% on
-qwen-flash. Stated cautiously because the two sweeps did not share a held-out set
-(see below); the effect is far larger than the split could explain, but it is not
-yet a matched comparison.
+**No arm regresses mid-run.** `scripts/drift.py` tests each arm's loss rate against the
+full catalog, per half, with Fisher exact; every arm comes back flat (p ≥ 0.364).
 
-> Both sweeps ran on distractor pool **v1**, which sampled differentiator clauses
-> uniformly and so occasionally handed a browser tool "Fails instead of overwriting
-> existing entries". v2 keys the pool by server. Padded catalogs are built at run time,
-> so v1 and v2 numbers must not be pooled — `CORPUS_VERSION` records which is live.
-
-> **Split defect, and what it does and does not invalidate.** `split()` keyed on
-> `hash((seed, scenario))`, and CPython salts string hashing per process, so these two
-> sweeps drew different held-out sets — they share only 6 of 95 ground-truth labels.
-> Within a sweep all six arms run in one process and one split, so every paired McNemar
-> result above stands. What does not stand is any comparison of a qwen-flash accuracy to
-> a haiku accuracy. The break-even table is unaffected: `n*` depends on token counts,
-> prices and the horizon, not on which turns were sampled. Fixed with a blake2b key and
-> a subprocess regression test; both sweeps are being re-run on the stable split.
+> Superseded: the earlier Haiku table used 95 held-out turns drawn by a `split()` that
+> keyed on `hash((seed, scenario))`. CPython salts string hashing per process, so two
+> sweeps shared only 6 of 95 labels and no cross-sweep comparison was valid. Fixed with
+> `hashlib.blake2b` and a subprocess regression test; both sweeps above were re-run on
+> the stable split at n=310. The break-even table was never affected — `n*` depends on
+> token counts and prices, not on which turns were held out.

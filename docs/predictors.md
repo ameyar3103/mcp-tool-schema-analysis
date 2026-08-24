@@ -76,6 +76,38 @@ never called again. Markov avoids this by construction: a transition is weighted
 The `peak` and `admissions` columns diverging — peak 7, admissions 50 — is the
 signature. The hot set is not growing, it is churning, and every churn is a rewrite.
 
+## Live ablation — qwen3.7-flash, 310 held-out turns (salt `804fb61f`)
+
+Policy and economics held fixed; only the predictor varies. `index-only` is the
+names-only floor, `hotset-oracle` the ceiling that sees the actual future.
+
+| arm | strict | lenient | hit | prompt tok | hot | $/turn |
+|---|---|---|---|---|---|---|
+| hotset-oracle | 29.4% | **62.3%** | 94.3% | 12,341 | 0 | $0.000098 |
+| hotset-ensemble | 31.0% | 61.0% | 94.2% | 12,344 | 0 | $0.000098 |
+| hotset-lru-k | 29.0% | 59.4% | 94.0% | 12,357 | 0 | $0.000100 |
+| hotset-markov | 31.9% | 59.4% | 94.3% | 12,340 | 0 | $0.000098 |
+| index-only | 32.6% | 51.6% | 97.2% | 11,797 | 0 | $0.000086 |
+
+**No predictor is distinguishable from any other, including the oracle.** Pairwise
+lenient McNemar puts every predictor-vs-predictor comparison at p ≥ 0.163, against a
+4.0% detection floor. All four beat `index-only` (p = 0.000–0.014) by 7.8–10.7 points.
+
+That gap is not admission. The `hot` column is **0 for every arm** — on Alibaba `n*` is
+98–142 and nothing clears it, so all four predictors produce the same plan. What the
+ablation actually measures is the policy's layer-B suffix against a names-only prefix,
+and the predictors are being compared on a decision none of them got to make.
+
+This is the week-3 economics confirmed rather than a predictor result. A predictor
+ablation on a workload where admission never fires has no signal in it by construction,
+and reporting the four as "statistically tied" without that caveat would imply the
+predictors were tested and found equivalent. They were not tested at all.
+
+The offline replay in the section above is where predictor quality does separate: LRU-K
+admits 50 tools for $0.071 of rewrites that the oracle shows were never worth buying.
+Those admissions are invisible here because the live arm ran against a provider whose
+threshold none of them reached.
+
 ## What this does not show
 
 The suite gives one tool call per turn and never repeats a tool inside a scenario, so

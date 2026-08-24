@@ -12,13 +12,18 @@ block that earns its place, and a cold tail served on demand.
 On qwen-flash over a 300-tool catalog and 310 held-out turns
 ([docs/pareto.md](docs/pareto.md)):
 
-| arm | lenient acc | cache hit | prompt tok | $/turn |
+| model | arm | lenient acc | prompt tok | $/turn |
 |---|---|---|---|---|
-| **hotset** | **61.9%** | 94.0% | 12,357 | $0.000099 |
-| full-catalog | 57.7% | 98.5% | 39,193 | $0.000258 |
+| qwen-flash | **hotset** | **61.9%** | 12,357 | $0.000099 |
+| qwen-flash | full-catalog | 57.7% | 39,193 | $0.000258 |
+| haiku-4.5 | **index-only** | **56.5%** | 13,651 | $0.002599 |
+| haiku-4.5 | full-catalog | 56.5% | 45,681 | $0.006011 |
 
 **3.2× fewer prompt tokens and 2.6× lower cost, with no accuracy loss to show for it**
-(p=0.223). HotSet is on the statistical Pareto frontier; the full catalog is not.
+(p=0.223). On Haiku the tie is exact: `index-only` and `full-catalog` both score 175/310,
+16 discordant pairs each way, **p = 1.0000** — every JSON Schema dropped, zero accuracy
+paid, 43% of the cost. Sending the whole catalog is not a strong baseline; it is the
+most expensive arm on both models and better than neither.
 
 The admission rule is a closed form, not a tuned heuristic. A tool earns a cached schema
 when its expected call rate over the horizon clears
