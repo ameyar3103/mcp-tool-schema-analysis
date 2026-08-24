@@ -1,6 +1,9 @@
 """Report accuracy with intervals and paired tests for one sweep.
 
-Usage: significance.py <model> <catalog_size> <salt>
+Usage: significance.py <salt>
+
+The salt alone identifies a run: it is what guarantees no arm inherited a warm prefix
+from another, so arms sharing one are exactly the arms that are comparable.
 """
 
 from __future__ import annotations
@@ -11,19 +14,25 @@ from hotset.eval.runner import RESULTS, load
 from hotset.eval.significance import compare, minimum_detectable, outcomes, wilson
 
 
-def collect(model: str, size: int, salt: str) -> dict[str, list]:
-    suffix = f"-{model}-{size}-{salt}.jsonl"
-    return {p.name[: -len(suffix)]: load(p) for p in sorted(RESULTS.glob(f"*{suffix}"))}
+def collect(salt: str) -> dict[str, list]:
+    """Keyed on the arm recorded inside each file, not on parsing the filename."""
+    out = {}
+    for path in sorted(RESULTS.glob(f"*-{salt}.jsonl")):
+        rows = load(path)
+        if rows:
+            out[rows[0].arm] = rows
+    return out
 
 
 def main() -> None:
-    model, size, salt = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-    arms = collect(model, size, salt)
+    salt = sys.argv[1]
+    arms = collect(salt)
     if not arms:
-        raise SystemExit(f"no results for {model}/{size}/{salt}")
+        raise SystemExit(f"no results for salt {salt}")
     scored = {name: outcomes(rs) for name, rs in arms.items()}
     n = max(len(v) for v in scored.values())
-    print(f"{model} | {size} tools | {n} scored turns | salt {salt}\n")
+    model = next(iter(arms.values()))[0].model
+    print(f"{model} | {n} scored turns | salt {salt}\n")
     for name in sorted(scored, key=lambda k: -sum(scored[k].values())):
         k, total = sum(scored[name].values()), len(scored[name])
         lo, hi = wilson(k, total)
