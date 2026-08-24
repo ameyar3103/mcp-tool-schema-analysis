@@ -41,12 +41,15 @@ def metrics(results: list[TurnResult]) -> dict:
     correct = sum(r.correct for r in scored)
     lenient = sum(r.correct or r.twin for r in scored)
     lo, hi = wilson(correct, n)
+    llo, lhi = wilson(lenient, n)
     cost = sum(r.cost_usd for r in scored) / n
     return {
         "accuracy": correct / n,
         "lenient": lenient / n,
         "lo": lo,
         "hi": hi,
+        "lenient_lo": llo,
+        "lenient_hi": lhi,
         "cost_per_turn": cost,
         "cost_per_correct": cost / (correct / n) if correct else float("inf"),
         "hit_rate": sum(r.hit_rate() for r in scored) / n,
@@ -64,8 +67,49 @@ def dominates(a: str, b: str, arms: dict, paired: dict, alpha: float = ALPHA) ->
     return p >= alpha  # cheaper, and the accuracy gap is indistinguishable from zero
 
 
-def frontier(arms: dict, paired: dict, alpha: float = ALPHA) -> set[str]:
+def antichain(arms: dict, paired: dict, alpha: float = ALPHA) -> set[str]:
+    """Arms no single other arm dominates."""
     return {a for a in arms if not any(dominates(b, a, arms, paired, alpha) for b in arms if b != a)}
+
+
+def frontier(arms: dict, paired: dict, alpha: float = ALPHA) -> set[str]:
+    """The antichain, plus anything that measurably beats something in it.
+
+    "Not significantly worse" is not transitive, so dominance chains: a cheap arm ties
+    a middling one, the middling one ties an accurate one, and the accurate arm drops
+    out even though it beats the survivor at p<0.01. That is a correct pairwise
+    statement and a useless recommendation, so arms that buy a real accuracy gain over
+    a survivor are put back until the set stops growing.
+    """
+    best = antichain(arms, paired, alpha)
+    while True:
+        add = {
+            d
+            for d in set(arms) - best
+            for k in best
+            if arms[d]["accuracy"] > arms[k]["accuracy"] and mcnemar(paired[d], paired[k])[2] < alpha
+        }
+        if not add:
+            return best
+        best |= add
+
+
+def inversions(arms: dict, paired: dict, best: set[str], alpha: float = ALPHA) -> list[tuple]:
+    """Dropped arms that significantly beat a surviving one.
+
+    "Not significantly worse" is not transitive, so dominance can chain: a cheap arm
+    beats a middling one, the middling one beats an accurate one, and the accurate arm
+    falls off the frontier even though it beats the survivor outright. The frontier is
+    still correct pairwise, but reporting it alone would hide that, so every such
+    inversion is listed rather than left for a reader to rediscover.
+    """
+    out = []
+    for d in set(arms) - best:
+        for k in best:
+            *_, pv = mcnemar(paired[d], paired[k])
+            if pv < alpha and arms[d]["accuracy"] > arms[k]["accuracy"]:
+                out.append((d, k, pv))
+    return sorted(out, key=lambda t: t[2])
 
 
 def naive_frontier(arms: dict) -> set[str]:
@@ -82,7 +126,8 @@ def naive_frontier(arms: dict) -> set[str]:
     }
 
 
-def report(arms: dict, best: set[str], naive: set[str]) -> None:
+def report(arms: dict, best: set[str], naive: set[str], flags: list[tuple] = (),
+           readmitted: set[str] = frozenset()) -> None:
     """The numbers are the deliverable; the plot is a rendering of them."""
     turns = max(m["turns"] for m in arms.values())
     print(f"{'arm':16} {'acc':>6} {'95% CI':>15} {'lenient':>8} {'hit':>6} "
@@ -100,6 +145,10 @@ def report(arms: dict, best: set[str], naive: set[str]) -> None:
         print(f"on the naive frontier only because their accuracy edge is noise: {sorted(dropped)}")
     if kept:
         print(f"retained despite a nominal loss that is not significant: {sorted(kept)}")
+    if readmitted:
+        print(f"re-admitted past a dominance chain by beating a survivor: {sorted(readmitted)}")
+    for d, k, pv in flags:
+        print(f"UNRESOLVED inversion: {d} beats {k} at p={pv:.4f} yet is excluded")
 
 
 def plot(arms: dict, best: set[str], out: str) -> None:
@@ -134,16 +183,26 @@ def plot(arms: dict, best: set[str], out: str) -> None:
     print(f"wrote {RESULTS / out}")
 
 
-def main(salt: str, out: str = "pareto.png") -> None:
+def main(salt: str, out: str = "pareto.png", lenient: bool = False) -> None:
     raw = collect(salt)
     if not raw:
         raise SystemExit(f"no results for salt {salt}")
     arms = {name: metrics(rs) for name, rs in raw.items()}
-    paired = {name: outcomes(rs) for name, rs in raw.items()}
+    if lenient:
+        # Same frontier machinery, scoring a synthetic twin as a hit. The interval has
+        # to move with the point estimate or the plotted bars go negative.
+        arms = {
+            n: dict(m, accuracy=m["lenient"], lo=m["lenient_lo"], hi=m["lenient_hi"])
+            for n, m in arms.items()
+        }
+    paired = {name: outcomes(rs, lenient) for name, rs in raw.items()}
     best = frontier(arms, paired)
-    report(arms, best, naive_frontier(arms))
+    readmitted = best - antichain(arms, paired)
+    print(f"scoring: {'lenient (twin counts as correct)' if lenient else 'strict'}")
+    report(arms, best, naive_frontier(arms), inversions(arms, paired, best), readmitted)
     plot(arms, best, out)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    args = [a for a in sys.argv[1:] if a != "--lenient"]
+    main(*args, lenient="--lenient" in sys.argv)

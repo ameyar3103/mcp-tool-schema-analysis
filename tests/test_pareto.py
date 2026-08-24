@@ -94,3 +94,47 @@ def test_position_buckets_group_by_turn_index_not_session():
         for t in range(4)
     ]
     assert by_position(spans) == {0: (3, 3), 1: (3, 3), 2: (0, 3), 3: (0, 3)}
+
+
+def _chain():
+    """Three arms whose ties chain: cheap ~ mid, mid ~ dear, but dear beats cheap."""
+    cheap = set(range(50))
+    mid = set(range(14, 50)) | set(range(60, 82))
+    dear = set(range(20, 50)) | set(range(60, 96))
+    pattern = {"cheap": cheap, "mid": mid, "dear": dear}
+    arms = {"cheap": arm(1.0, 0.50), "mid": arm(2.0, 0.58), "dear": arm(3.0, 0.66)}
+    paired = {n: {(0, i): i in s for i in range(100)} for n, s in pattern.items()}
+    return arms, paired
+
+
+def test_the_chain_is_really_a_chain():
+    """Guards the fixture: the pathology only exists if these p-values hold."""
+    from hotset.eval.significance import mcnemar
+
+    _, paired = _chain()
+    assert mcnemar(paired["cheap"], paired["mid"])[2] >= 0.05
+    assert mcnemar(paired["mid"], paired["dear"])[2] >= 0.05
+    assert mcnemar(paired["cheap"], paired["dear"])[2] < 0.05
+
+
+def test_the_antichain_drops_an_arm_that_beats_the_survivor():
+    from plot_pareto import antichain
+
+    arms, paired = _chain()
+    assert antichain(arms, paired) == {"cheap"}
+
+
+def test_the_frontier_puts_that_arm_back():
+    """A recommendation that omits a measurably better option is not a recommendation."""
+    from plot_pareto import frontier
+
+    arms, paired = _chain()
+    assert frontier(arms, paired) == {"cheap", "dear"}
+
+
+def test_re_admission_reaches_a_fixpoint():
+    from plot_pareto import frontier, inversions
+
+    arms, paired = _chain()
+    best = frontier(arms, paired)
+    assert inversions(arms, paired, best) == []

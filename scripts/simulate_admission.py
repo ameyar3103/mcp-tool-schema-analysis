@@ -15,6 +15,7 @@ from hotset.corpus.harvest import load
 from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
 from hotset.eval.workload import concentration, trace
+from hotset.layout.tokens import exact
 from hotset.policy.adaptive import HotSet
 from hotset.policy.economics import rewritten_segment
 from hotset.policy.predictors import LRUK, Ensemble, Markov, Oracle, warm
@@ -64,7 +65,9 @@ def main(
     top5, peak = concentration(test)
     print(
         f"{model} | catalog {len(catalog)} v{version} | {len(future)} turns | skew {skew} "
-        f"| top5 {top5:.1%} peak/50 {peak} | horizon {HORIZON}\n"
+        f"| top5 {top5:.1%} peak/50 {peak} | horizon {HORIZON}"
+        # Admission is a token-count decision, so which counter ran is part of the result.
+        f" | tokens {'reference BPE' if exact() else 'CHAR FALLBACK'}\n"
     )
     print(f"{'predictor':12} {'peak':>5} {'admits':>7} {'rewrite $':>10}  final")
     for name, predictor in [

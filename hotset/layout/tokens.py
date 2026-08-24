@@ -21,6 +21,16 @@ def _tokenizer():
         return None
 
 
+def exact() -> bool:
+    """Whether counts come from the reference BPE or from the character fallback.
+
+    The fallback is close enough to keep planning running, but it is not the same
+    number, so any result that depends on token counts has to disclose which path
+    produced it rather than let the two be silently interchangeable.
+    """
+    return _tokenizer() is not None
+
+
 def count(text: str) -> int:
     """Reference-tokenizer length of one string."""
     tok = _tokenizer()
