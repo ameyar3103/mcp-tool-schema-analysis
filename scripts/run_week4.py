@@ -15,6 +15,7 @@ from hotset.corpus.distractors import pad_catalog
 from hotset.corpus.harvest import load
 from hotset.eval.runner import run_arm, save, summarize
 from hotset.eval.significance import compare
+from hotset.eval.spans import Recorder
 from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
 from hotset.eval.workload import concentration, trace
@@ -70,8 +71,11 @@ def main(
     )
     collected = {}
     for arm in arms:
-        results = run_arm(arm, spec, catalog, test, salt=salt)
-        save(results, f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}")
+        tag = f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}"
+        rec = Recorder(arm.name, spec.slug)  # traces answer "did it degrade mid-run"
+        results = run_arm(arm, spec, catalog, test, salt=salt, recorder=rec)
+        save(results, tag)
+        rec.save(tag)
         collected[arm.name] = results
         m = summarize(results)
         hot = len(arm.hot) if isinstance(arm, HotSet) else 0

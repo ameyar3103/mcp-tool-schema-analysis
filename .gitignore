@@ -16,3 +16,4 @@ runs/
 data/raw/
 .env
 .npm-cache/
+traces/

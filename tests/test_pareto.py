@@ -63,3 +63,34 @@ def test_equal_cost_arms_never_dominate_each_other():
     arms = {"a": arm(1.0, 0.9), "b": arm(1.0, 0.1)}
     paired = {"a": outcomes([1] * 40), "b": outcomes([0] * 40)}
     assert frontier(arms, paired) == {"a", "b"}
+
+
+def test_drift_reports_only_non_overlapping_halves():
+    """A drift claim needs separated intervals; a nominal dip is not evidence."""
+    from drift import halves
+
+    from hotset.eval.significance import wilson
+    from hotset.eval.spans import Span
+
+    def span(i, correct):
+        return Span(trace_id="t", span_id=str(i), name="turn", start_ms=float(i),
+                    attributes={"hotset.correct": correct})
+
+    clean = [span(i, i < 40) for i in range(80)]  # perfect, then total collapse
+    (a, an), (b, bn) = halves(clean)
+    assert (a, an, b, bn) == (40, 40, 0, 40)
+    assert wilson(b, bn)[1] < wilson(a, an)[0]
+
+
+def test_position_buckets_group_by_turn_index_not_session():
+    from drift import by_position
+
+    from hotset.eval.spans import Span
+
+    spans = [
+        Span(trace_id=f"s{s}", span_id=f"{s}-{t}", name="turn", start_ms=0.0,
+             attributes={"hotset.turn": t, "hotset.correct": t < 2})
+        for s in range(3)
+        for t in range(4)
+    ]
+    assert by_position(spans) == {0: (3, 3), 1: (3, 3), 2: (0, 3), 3: (0, 3)}
