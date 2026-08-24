@@ -23,7 +23,10 @@ from hotset.policy.baselines import (
 )
 from hotset.policy.predictors import LRUK, warm
 
-HEAD = f"{'arm':16} {'acc':>6} {'halluc':>7} {'hit':>6} {'prompt':>8} {'hops':>5} {'lat':>6} {'$/turn':>10} {'$/correct':>10}"
+HEAD = (
+    f"{'arm':16} {'acc':>6} {'twin':>6} {'lenient':>8} {'halluc':>7} {'hit':>6} "
+    f"{'prompt':>8} {'hops':>5} {'$/turn':>10} {'$/correct':>10}"
+)
 # One shared prefix serves all traffic, so admission amortizes over the deployment,
 # not over a single five-turn conversation.
 HORIZON = 50
@@ -64,8 +67,9 @@ def main(
         save(results, f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}")
         m = summarize(results)
         print(
-            f"{arm.name:16} {m['accuracy']:6.1%} {m['hallucinated']:7.1%} {m['hit_rate']:6.1%} "
-            f"{m['prompt_tokens']:8.0f} {m['hops']:5.2f} {m['latency_s']:5.1f}s "
+            f"{arm.name:16} {m['accuracy']:6.1%} {m['twin']:6.1%} {m['lenient_accuracy']:8.1%} "
+            f"{m['hallucinated']:7.1%} {m['hit_rate']:6.1%} "
+            f"{m['prompt_tokens']:8.0f} {m['hops']:5.2f} "
             f"${m['cost_per_turn']:.6f} ${m['cost_per_correct']:.6f}"
             + (f"  ({m['errors']} err)" if m["errors"] else "")
         )

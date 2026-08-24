@@ -22,7 +22,10 @@ from hotset.policy.adaptive import HotSet
 from hotset.policy.baselines import IndexOnly
 from hotset.policy.predictors import LRUK, Ensemble, Markov, Oracle, warm
 
-HEAD = f"{'arm':16} {'acc':>6} {'hit':>6} {'prompt':>8} {'hot':>4} {'$/turn':>10} {'$/correct':>10}"
+HEAD = (
+    f"{'arm':16} {'acc':>6} {'lenient':>8} {'hit':>6} {'prompt':>8} {'hot':>4} "
+    f"{'$/turn':>10} {'$/correct':>10}"
+)
 HORIZON = 50
 
 
@@ -73,7 +76,7 @@ def main(
         m = summarize(results)
         hot = len(arm.hot) if isinstance(arm, HotSet) else 0
         print(
-            f"{arm.name:16} {m['accuracy']:6.1%} {m['hit_rate']:6.1%} "
+            f"{arm.name:16} {m['accuracy']:6.1%} {m['lenient_accuracy']:8.1%} {m['hit_rate']:6.1%} "
             f"{m['prompt_tokens']:8.0f} {hot:4} "
             f"${m['cost_per_turn']:.6f} ${m['cost_per_correct']:.6f}"
             + (f"  ({m['errors']} err)" if m["errors"] else "")

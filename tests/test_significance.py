@@ -66,3 +66,16 @@ def test_split_is_stable_across_processes():
         for _ in range(3)
     }
     assert len(runs) == 1
+
+
+def test_twin_is_scored_apart_from_correct_and_hallucinated():
+    """A synthetic near-duplicate is neither right nor an invented name."""
+    from hotset.eval.runner import summarize
+
+    r = _res(1, 0, False)
+    r.predicted, r.twin = "aux_git_add", True
+    m = summarize([r])
+    assert m["accuracy"] == 0.0
+    assert m["twin"] == 1.0
+    assert m["lenient_accuracy"] == 1.0
+    assert m["hallucinated"] == 0.0
