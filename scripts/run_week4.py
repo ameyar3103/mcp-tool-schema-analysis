@@ -17,6 +17,7 @@ from hotset.eval.runner import run_arm, save, summarize
 from hotset.eval.significance import compare
 from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
+from hotset.eval.workload import concentration, trace
 from hotset.policy.adaptive import HotSet
 from hotset.policy.baselines import IndexOnly
 from hotset.policy.predictors import LRUK, Ensemble, Markov, Oracle, warm
@@ -44,22 +45,30 @@ def build(spec, train, test):
     return made
 
 
-def main(model: str = "qwen-flash", size: int = 300) -> None:
+def main(
+    model: str = "qwen-flash", size: int = 300, version: int = 2, skew: float = 0.0
+) -> None:
     spec = MODELS[model]
     base = load()
-    catalog = base if size == len(base) else pad_catalog(base, size, seed=0)
+    catalog = base if size == len(base) else pad_catalog(base, size, seed=0, version=version)
     train, test = split(load_tasks())
+    if skew:
+        # Same questions, different arrival mix: isolates workload concentration from
+        # task difficulty, which a freshly generated skewed suite could not.
+        servers = {t.name: t.server for t in base}
+        test = trace(test, servers, skew=skew, length=len(test), seed=0)
     salt = uuid.uuid4().hex[:8]
 
     arms = [IndexOnly(), *build(spec, train, test)]  # index-only is the no-admission floor
     print(
         f"{model} | catalog {len(catalog)} | test {len(test)} sessions "
-        f"({sum(len(s.turns) for s in test)} turns) | salt {salt}\n\n{HEAD}"
+        f"({sum(len(s.turns) for s in test)} turns) | skew {skew} "
+        f"| top5 {concentration(test)[0]:.1%} peak/50 {concentration(test)[1]} | salt {salt}\n\n{HEAD}"
     )
     collected = {}
     for arm in arms:
         results = run_arm(arm, spec, catalog, test, salt=salt)
-        save(results, f"{arm.name}-{model}-{len(catalog)}-{salt}")
+        save(results, f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}")
         collected[arm.name] = results
         m = summarize(results)
         hot = len(arm.hot) if isinstance(arm, HotSet) else 0
@@ -76,4 +85,11 @@ def main(model: str = "qwen-flash", size: int = 300) -> None:
 
 
 if __name__ == "__main__":
-    main(*(sys.argv[1:2] or []), **({"size": int(sys.argv[2])} if len(sys.argv) > 2 else {}))
+    opts = {}
+    if len(sys.argv) > 2:
+        opts["size"] = int(sys.argv[2])
+    if len(sys.argv) > 3:
+        opts["version"] = int(sys.argv[3])
+    if len(sys.argv) > 4:
+        opts["skew"] = float(sys.argv[4])
+    main(*(sys.argv[1:2] or []), **opts)

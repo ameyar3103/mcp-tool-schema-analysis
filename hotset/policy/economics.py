@@ -47,3 +47,30 @@ def break_even(spec: ModelSpec, schema_tokens: int, segment_tokens: int, horizon
     rewrite = segment_tokens * (spec.write - spec.cached)
     carry = horizon * spec.cached  # the admitted schema is re-read every remaining turn
     return rewrite / (schema_tokens * spec.uncached) + carry / spec.uncached
+
+
+def asymptotic_rate(spec: ModelSpec) -> float:
+    """Call rate a tool must exceed for admission to ever pay, at any schema size.
+
+    Taking n*/T as T grows, the rewrite term vanishes and only the carrying cost
+    survives: a cached token still bills at `cached`, so a schema earns its place iff
+    it is called more often than the provider's cached/uncached price ratio. Schema
+    size and segment size do not change this bound — they only set how long the
+    deployment must run before it holds.
+    """
+    return spec.cached / spec.uncached
+
+
+def amortization_horizon(
+    spec: ModelSpec, schema_tokens: int, segment_tokens: int, rate: float
+) -> float:
+    """Turns of traffic before admitting a tool at `rate` pays for itself.
+
+    Infinite when the rate sits below the asymptotic bound, which is the useful
+    answer: no horizon rescues a tool that is called too rarely.
+    """
+    margin = rate - asymptotic_rate(spec)
+    if margin <= 0 or schema_tokens <= 0:
+        return math.inf
+    rewrite = segment_tokens * (spec.write - spec.cached)
+    return rewrite / (schema_tokens * spec.uncached) / margin

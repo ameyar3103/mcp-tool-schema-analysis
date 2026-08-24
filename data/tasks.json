@@ -1,5 +1,55 @@
 [
   {
+    "scenario": "A DevOps engineer is cleaning up outdated relationship records in an internal tooling knowledge graph after a team reorg.",
+    "turns": [
+      {
+        "tool": "search_nodes",
+        "user": "Find any entries related to the old 'Platform Team' in our notes."
+      },
+      {
+        "tool": "delete_observations",
+        "user": "Remove the note saying John reports to the old team lead, that's outdated now."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "Delete the relationship linking the deprecated 'Legacy Infra' project entirely, we don't need it anymore."
+      },
+      {
+        "tool": "delete_entities",
+        "user": "Actually just remove the whole entity for that old contractor, they're no longer with us."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add a note that the reorg was completed and the new team structure is in place as of this week."
+      }
+    ]
+  },
+  {
+    "scenario": "A DevOps engineer is preparing an old script repository for archival by tidying files and confirming version history.",
+    "turns": [
+      {
+        "tool": "list_allowed_directories",
+        "user": "Which folders can this tool even touch on the server, before I start moving things?"
+      },
+      {
+        "tool": "move_file",
+        "user": "Rename the old-scripts folder to archive-2023 and move it under the backups directory."
+      },
+      {
+        "tool": "git_checkout",
+        "user": "Switch the repo over to the maintenance branch before I look at anything else."
+      },
+      {
+        "tool": "git_show",
+        "user": "Show me what the very first commit in this repo actually contains."
+      },
+      {
+        "tool": "git_reset",
+        "user": "Undo the staged changes I accidentally added earlier, I don't want them committed yet."
+      }
+    ]
+  },
+  {
     "scenario": "A QA tester is verifying a signup form works correctly on a staging website.",
     "turns": [
       {
@@ -21,6 +71,331 @@
       {
         "tool": "browser_network_requests",
         "user": "Can you check the network calls that happened after I submitted, I want to see the signup request payload?"
+      }
+    ]
+  },
+  {
+    "scenario": "A UI designer is testing an image gallery widget by dragging images into it and confirming the layout updates properly.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Take me to the gallery demo page so I can start testing."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill out the uploader's metadata form with a title and description for the test image."
+      },
+      {
+        "tool": "browser_drag",
+        "user": "Drag the thumbnail from the sidebar into the main gallery drop zone."
+      },
+      {
+        "tool": "browser_drop",
+        "user": "Now simulate dropping an external file directly onto the upload area like a user would from their desktop."
+      },
+      {
+        "tool": "browser_navigate_back",
+        "user": "Go back to the previous page so I can retest from the gallery list view."
+      }
+    ]
+  },
+  {
+    "scenario": "A UX researcher is auditing a client's e-commerce product page for accessibility and usability issues, then documenting findings.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open the product listing page on their staging site so I can look at it."
+      },
+      {
+        "tool": "browser_take_screenshot",
+        "user": "Can you get me a full picture of the entire page, not just what's visible on screen?"
+      },
+      {
+        "tool": "browser_hover",
+        "user": "Try hovering over that 'Add to Cart' button and see what tooltip or state shows up."
+      },
+      {
+        "tool": "browser_navigate_back",
+        "user": "Go back to the category page, I want to check the layout there again."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Save a note that this client has a usability issue on the checkout button placement."
+      }
+    ]
+  },
+  {
+    "scenario": "A UX researcher is building a personal knowledge base of interview participants and cross-referencing notes from a research session.",
+    "turns": [
+      {
+        "tool": "delete_entities",
+        "user": "Remove the outdated entries for participants who dropped out of the study."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "Also delete the connection linking that old participant to the 'pilot cohort' group."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Pull the structured summary data from our research tool so I can double check it matches my notes."
+      },
+      {
+        "tool": "write_file",
+        "user": "Save my updated interview notes to a new file in the research folder."
+      },
+      {
+        "tool": "read_file",
+        "user": "Read back the notes file to make sure everything saved correctly."
+      }
+    ]
+  },
+  {
+    "scenario": "A UX writer is testing a multi-step onboarding wizard on a demo site and dragging sample files into an upload widget.",
+    "turns": [
+      {
+        "tool": "browser_tabs",
+        "user": "Open the onboarding demo page in a new tab for me."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Give me a snapshot of the current step so I can see all the fields and buttons."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill in the name, email, and company fields with test data so I can move to step two."
+      },
+      {
+        "tool": "browser_drop",
+        "user": "I have a sample resume file locally \u2014 can you drag it onto the upload box on this page?"
+      },
+      {
+        "tool": "browser_find",
+        "user": "Search the page content for the word 'error' to make sure nothing broke after upload."
+      }
+    ]
+  },
+  {
+    "scenario": "A backend developer is finishing up a bug-fix branch and wants to confirm the diff before committing it.",
+    "turns": [
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Show me what's changed in my working directory that hasn't been staged yet."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Now show me what's actually staged and ready to go."
+      },
+      {
+        "tool": "git_reset",
+        "user": "Actually, unstage everything, I want to redo the staging more carefully."
+      },
+      {
+        "tool": "git_branch",
+        "user": "List out the local branches that contain the word 'bugfix' so I can find the right one."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Okay, commit everything with the message 'Fix null pointer in payment retry logic'."
+      }
+    ]
+  },
+  {
+    "scenario": "A backend developer is investigating an intermittent server timeout by reviewing captured network activity from a load test session.",
+    "turns": [
+      {
+        "tool": "browser_resize",
+        "user": "Resize the browser window to a larger size so I can see the full dashboard during this test."
+      },
+      {
+        "tool": "browser_navigate_back",
+        "user": "Reload the monitoring dashboard page after the last deploy."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Pull up the full details of that third network call in the list, including headers and body."
+      },
+      {
+        "tool": "browser_run_code_unsafe",
+        "user": "Run a quick script to simulate ten rapid requests against the endpoint and see how it behaves."
+      },
+      {
+        "tool": "toggle-simulated-logging",
+        "user": "Turn on that random logging mode so we can see varied severity output while I test."
+      }
+    ]
+  },
+  {
+    "scenario": "A backend developer is troubleshooting why a form submission silently fails on a partner's website by inspecting the raw request payload.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Load up the contact form page on their site."
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill in the name, email, and message fields with test data so I can submit it."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Click the submit button now."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Grab the full details of that submission request, headers and body included."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Write down that the form endpoint returns a 500 error when the message field exceeds 500 characters."
+      }
+    ]
+  },
+  {
+    "scenario": "A backend engineer is debugging an intermittent API timeout by inspecting live network calls and recent server-side code changes.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Load the internal dashboard where the timeouts have been happening."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Show me the list of network calls that fired since the page loaded."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Pull up the full detail on request number 14, I want to see the headers and payload."
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "Let me see if there are any browser console errors related to this request."
+      },
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Compare what's changed in the working directory of the API service since the last commit."
+      }
+    ]
+  },
+  {
+    "scenario": "A business analyst is validating structured data returned from an internal reporting tool before including it in a client deliverable.",
+    "turns": [
+      {
+        "tool": "get-structured-content",
+        "user": "Pull the structured output from the quarterly-sales location so I can validate its shape."
+      },
+      {
+        "tool": "echo",
+        "user": "Can you send a quick test message through the system to confirm it's responding properly?"
+      },
+      {
+        "tool": "create_relations",
+        "user": "I want to log a relationship between our client and their new account manager in our notes system."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "Actually, remove the outdated relation between the old account manager and that client."
+      },
+      {
+        "tool": "read_graph",
+        "user": "Show me the entire current map of clients and contacts we have stored."
+      }
+    ]
+  },
+  {
+    "scenario": "A consultant is mapping relationships between clients and stakeholders while double-checking data returned from an internal tool for a report.",
+    "turns": [
+      {
+        "tool": "open_nodes",
+        "user": "I need to look up what we already have stored on 'Jane Whitfield' and her company."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add a note that Jane recently moved to a VP role at her firm."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Connect Jane to the 'Whitfield Consulting' entity as someone who leads it."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "Remove that outdated link showing her as just an employee there."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Pull the structured client data for this account so I can validate it against our schema."
+      }
+    ]
+  },
+  {
+    "scenario": "A data analyst is preparing exported CSV reports for a stakeholder and wants to confirm file details before compressing and sending them.",
+    "turns": [
+      {
+        "tool": "get_file_info",
+        "user": "Can you tell me how big the quarterly_report.csv file is and when it was last updated?"
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Pull up the contents of both the sales and inventory report files so I can compare the numbers."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "I need to shrink this large report file down before emailing it over."
+      },
+      {
+        "tool": "read_text_file",
+        "user": "Actually just show me the last 20 lines of the sales report, I don't need the whole thing."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Log a note that the Q3 report was finalized and shared with the finance team."
+      }
+    ]
+  },
+  {
+    "scenario": "A data engineer is preparing a set of log files for long-term storage and wants to verify contents before compressing them.",
+    "turns": [
+      {
+        "tool": "read_text_file",
+        "user": "Show me the last 50 lines of yesterday's server log file."
+      },
+      {
+        "tool": "create_directory",
+        "user": "Make a folder called 'archive/2024-logs' to store these before I zip them up."
+      },
+      {
+        "tool": "write_file",
+        "user": "Write out a summary file listing which logs were processed today."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Now compress the main log file so I can send it over to the archive team."
+      },
+      {
+        "tool": "git_add",
+        "user": "Can you stage that summary file in git so it's tracked with the next commit?"
+      }
+    ]
+  },
+  {
+    "scenario": "A developer investigates a failing checkout page by inspecting network traffic and console output in the browser, then reports findings.",
+    "turns": [
+      {
+        "tool": "browser_navigate_back",
+        "user": "Can you open our staging checkout page at staging.shop.example.com/checkout?"
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Actually, let's take a fresh look at what's on the page right now, give me the full accessibility layout."
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "I want to see if there are any JS errors being thrown when the page loads."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "There's a request to the payments API that seems slow, can you pull up the full details of that specific call, it's request 4 in the list?"
+      },
+      {
+        "tool": "browser_click",
+        "user": "Let's click the 'Place Order' button and see what happens."
       }
     ]
   },
@@ -250,6 +625,306 @@
     ]
   },
   {
+    "scenario": "A developer is diagnosing a flaky automated test and comparing recent code changes before reporting the issue to the team.",
+    "turns": [
+      {
+        "tool": "sequentialthinking",
+        "user": "Let me think through possible causes of this flaky test step by step before I dig further."
+      },
+      {
+        "tool": "git_diff",
+        "user": "Show me what changed between the last two commits on this branch."
+      },
+      {
+        "tool": "trigger-long-running-operation",
+        "user": "Can you kick off that long test suite and keep me posted as it progresses?"
+      },
+      {
+        "tool": "read_text_file",
+        "user": "Read through the test log file so I can see what actually failed."
+      },
+      {
+        "tool": "echo",
+        "user": "Just send back this exact debug string so I can confirm the pipe is working."
+      }
+    ]
+  },
+  {
+    "scenario": "A developer is investigating a slow-loading dashboard and wants to switch between multiple browser tabs while checking file sizes of exported reports.",
+    "turns": [
+      {
+        "tool": "browser_tabs",
+        "user": "Open a new tab pointed at our internal dashboard URL."
+      },
+      {
+        "tool": "browser_drag",
+        "user": "I dragged a widget earlier and it looks broken, can you move that chart element over to the sidebar area?"
+      },
+      {
+        "tool": "browser_file_upload",
+        "user": "I need to upload this exported CSV file into the report field."
+      },
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "Show me a detailed listing of the report exports folder so I can see which files are largest."
+      },
+      {
+        "tool": "browser_navigate_back",
+        "user": "Take me back to the previous page, I clicked into the wrong report."
+      }
+    ]
+  },
+  {
+    "scenario": "A digital archivist is cataloging scanned research papers and preparing a compressed package for external reviewers.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Give me a full folder-by-folder breakdown of everything under the scanned-papers directory."
+      },
+      {
+        "tool": "list_allowed_directories",
+        "user": "Which top-level directories am I actually allowed to work with here?"
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Tell me the size and last modified date of the file 'paper_042_scan.pdf'."
+      },
+      {
+        "tool": "read_text_file",
+        "user": "Read me the first 20 lines of the metadata text file that came with the scans."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Compress the finalized batch file so I can send it to the reviewers as a single package."
+      }
+    ]
+  },
+  {
+    "scenario": "A freelance consultant is investigating whether an ambiguous research topic needs clarification before compiling a market analysis for a client.",
+    "turns": [
+      {
+        "tool": "simulate-research-query",
+        "user": "Look into the current state of the renewable energy storage market for me."
+      },
+      {
+        "tool": "toggle-subscriber-updates",
+        "user": "Can you check if there are new updates coming in on that research subscription feed?"
+      },
+      {
+        "tool": "search_nodes",
+        "user": "Search my notes for anything I've already saved about battery storage companies."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add an observation that this client is specifically interested in lithium-ion alternatives."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Can you verify the structured output format matches what's expected before I paste it into the report?"
+      }
+    ]
+  },
+  {
+    "scenario": "A freelance developer is cleaning up their notes on multiple client projects stored in a personal knowledge system.",
+    "turns": [
+      {
+        "tool": "delete_observations",
+        "user": "Remove the outdated observation about ClientX still using the old payment provider."
+      },
+      {
+        "tool": "delete_entities",
+        "user": "Delete the entire entry for that client we stopped working with last year."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Add a new connection showing that ClientY refers business to ClientZ."
+      },
+      {
+        "tool": "simulate-research-query",
+        "user": "Can you kick off a deep dive on emerging trends in freelance contract law? I'm not sure exactly what angle I want yet."
+      },
+      {
+        "tool": "read_graph",
+        "user": "Let me see the whole knowledge base as it stands now."
+      }
+    ]
+  },
+  {
+    "scenario": "A frontend engineer is investigating a slow bulk-upload feature and reasoning through possible causes before writing a bug report.",
+    "turns": [
+      {
+        "tool": "sequentialthinking",
+        "user": "I need to think through the possible reasons the upload feature is slow, step by step, before I write anything up."
+      },
+      {
+        "tool": "browser_drop",
+        "user": "Drop these three sample files onto the upload zone like a user would."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "List out the network calls that happened since the page loaded so I can see which one is slow."
+      },
+      {
+        "tool": "browser_run_code_unsafe",
+        "user": "Run a quick script that measures how long the upload request actually takes."
+      },
+      {
+        "tool": "trigger-long-running-operation",
+        "user": "Kick off that test operation that reports progress as it goes, I want to see how it behaves under load."
+      }
+    ]
+  },
+  {
+    "scenario": "A game developer is finishing a sprint on a physics-based puzzle mechanic and wants to wrap up their git history cleanly.",
+    "turns": [
+      {
+        "tool": "git_log",
+        "user": "Show me the recent commit history for the puzzle-physics repo, just the last 10 commits."
+      },
+      {
+        "tool": "git_branch",
+        "user": "What branches currently exist that were created off of develop?"
+      },
+      {
+        "tool": "git_create_branch",
+        "user": "I want a fresh branch called 'polish-collision-fx' based off of develop."
+      },
+      {
+        "tool": "git_show",
+        "user": "Let me see the details of commit a3f9c21 before I build on top of it."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Save these staged changes with the message 'Fix collision jitter on rotated objects'."
+      }
+    ]
+  },
+  {
+    "scenario": "A game studio QA lead is validating a new inventory drag-and-drop feature in a browser-based game build.",
+    "turns": [
+      {
+        "tool": "browser_drag",
+        "user": "Open the inventory screen and drag the sword icon from the backpack slot to the equip slot."
+      },
+      {
+        "tool": "browser_drop",
+        "user": "Try dropping this local icon file directly onto the crafting table area like a user would drag it from their desktop."
+      },
+      {
+        "tool": "browser_hover",
+        "user": "Hover over the health potion icon so the tooltip shows up, I want to check the text."
+      },
+      {
+        "tool": "browser_find",
+        "user": "Search the current game screen for the word 'cooldown' to confirm the ability timer label appears."
+      },
+      {
+        "tool": "git_log",
+        "user": "Pull up the commit log for the inventory module so I can see what changed before this bug appeared."
+      }
+    ]
+  },
+  {
+    "scenario": "A grad student is researching climate policy and organizing sources with a small structured dataset check.",
+    "turns": [
+      {
+        "tool": "simulate-research-query",
+        "user": "Look into recent climate policy shifts in Europe and give me a synthesized summary of what's changed."
+      },
+      {
+        "tool": "fetch",
+        "user": "Grab the article content from this particular government report URL as readable text."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "I need to validate the structure of this dataset extract before I import it into my thesis appendix."
+      },
+      {
+        "tool": "get-resource-links",
+        "user": "Can you find a few reference links related to this topic so I can cite different source types?"
+      },
+      {
+        "tool": "delete_observations",
+        "user": "Save my notes on this into an entity so I remember the key points for later."
+      }
+    ]
+  },
+  {
+    "scenario": "A hiring coordinator is researching a candidate's github activity and organizing notes about them for the hiring team.",
+    "turns": [
+      {
+        "tool": "fetch",
+        "user": "Pull the readme content from this candidate's open source project repo URL."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add this candidate as a new entry with what we found so I can track them."
+      },
+      {
+        "tool": "list_directory",
+        "user": "Let's see what's inside their project folder that they shared with us."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Take a look at both their resume file and cover letter file at once so I can compare them."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "There's an outdated note linking them to the wrong recruiter, please remove that link."
+      }
+    ]
+  },
+  {
+    "scenario": "A hiring manager is screening a candidate's portfolio site and coordinating an interview time with a remote colleague.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Can you pull up the candidate's portfolio site so I can take a look?"
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "There's a contact form on their site, can you fill it out with a test message to see how it responds?"
+      },
+      {
+        "tool": "browser_handle_dialog",
+        "user": "A popup just appeared asking to confirm something, please accept it."
+      },
+      {
+        "tool": "get_current_time",
+        "user": "What time is it right now for our office in Berlin?"
+      },
+      {
+        "tool": "browser_close",
+        "user": "Go ahead and close that browser tab, I'm done reviewing."
+      }
+    ]
+  },
+  {
+    "scenario": "A junior developer is cleaning up their local workspace and preparing files for a code review handoff.",
+    "turns": [
+      {
+        "tool": "list_allowed_directories",
+        "user": "What folders am I actually allowed to work in from here?"
+      },
+      {
+        "tool": "read_text_file",
+        "user": "Show me the last 30 lines of the deployment log to check if the build finished properly."
+      },
+      {
+        "tool": "git_checkout",
+        "user": "Switch my working directory over to the 'release-prep' branch."
+      },
+      {
+        "tool": "git_reset",
+        "user": "I want to undo the staging I did earlier, it wasn't ready."
+      },
+      {
+        "tool": "git_add",
+        "user": "Now let's add the config file properly so it's staged for the real commit."
+      }
+    ]
+  },
+  {
     "scenario": "A knowledge worker is building out a personal knowledge base about their professional contacts.",
     "turns": [
       {
@@ -271,6 +946,281 @@
       {
         "tool": "read_graph",
         "user": "Show me my entire contacts knowledge base as it stands."
+      }
+    ]
+  },
+  {
+    "scenario": "A knowledge worker is mapping out their professional network and researching a potential business partner.",
+    "turns": [
+      {
+        "tool": "search_nodes",
+        "user": "Do I already have any notes saved about someone named Priya Nair?"
+      },
+      {
+        "tool": "open_nodes",
+        "user": "Pull up everything you have stored on Priya Nair and her connections."
+      },
+      {
+        "tool": "simulate-research-query",
+        "user": "Can you look into her company's background and recent news for me in depth?"
+      },
+      {
+        "tool": "get-sum",
+        "user": "I got some numbers back, can you add these two revenue figures together for my notes, 4500 and 3200?"
+      },
+      {
+        "tool": "delete_entities",
+        "user": "Actually I don't want to track her old employer anymore, remove that entity from my notes."
+      }
+    ]
+  },
+  {
+    "scenario": "A librarian archivist is organizing digitized manuscript scans stored across several folders before shipping them to a partner institution.",
+    "turns": [
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "Show me everything sitting in the scans folder along with how big each file is."
+      },
+      {
+        "tool": "search_files",
+        "user": "Find every TIFF file anywhere under the archive directory, even in subfolders."
+      },
+      {
+        "tool": "move_file",
+        "user": "Rename this folder from 'batch_temp' to 'batch_2024_final' and move it into the completed directory."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Can you shrink this large scan file down for us before we upload it?"
+      },
+      {
+        "tool": "read_text_file",
+        "user": "What does the intro page of this manuscript index file actually say, just the first part?"
+      }
+    ]
+  },
+  {
+    "scenario": "A localization tester is verifying that a translated marketing site renders correctly across browser tabs and checking a related archive of screenshots.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open the French version of our marketing site so I can start checking it."
+      },
+      {
+        "tool": "browser_take_screenshot",
+        "user": "Grab a full picture of the homepage so I can compare it against the design mockup later."
+      },
+      {
+        "tool": "browser_tabs",
+        "user": "Now open a second tab so I can pull up the English version side by side."
+      },
+      {
+        "tool": "browser_find",
+        "user": "Search the page content for the word 'Bienvenue' to make sure the header translated properly."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Bundle up these screenshot files into a compressed archive so I can send them to the design team."
+      }
+    ]
+  },
+  {
+    "scenario": "A logistics coordinator is verifying a partner API's booking confirmation flow on a staging site and organizing shipment contact notes.",
+    "turns": [
+      {
+        "tool": "browser_snapshot",
+        "user": "Can you open up the accessibility tree for the booking confirmation page so I can see what's on screen right now?"
+      },
+      {
+        "tool": "browser_find",
+        "user": "Go ahead and click the 'Confirm Shipment' button for me."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "I need to see the actual request that got sent when I submitted that booking form, headers and all."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Save a note that our contact at Meridian Freight, Sara Owens, handles the Chicago route and works with dispatcher Tom Reyes."
+      },
+      {
+        "tool": "search_nodes",
+        "user": "Pull up everything we've stored so far about Meridian Freight contacts."
+      }
+    ]
+  },
+  {
+    "scenario": "A market researcher is compiling a report on renewable energy trends and organizing findings into a structured note system.",
+    "turns": [
+      {
+        "tool": "simulate-research-query",
+        "user": "I want you to dig into recent developments in solar panel efficiency and give me a synthesized summary."
+      },
+      {
+        "tool": "create_entities",
+        "user": "Create an entry for 'Solar Efficiency Report' with some initial facts I've gathered so far."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Link that report entry to the 'Q3 Energy Trends' project entry as being part of it."
+      },
+      {
+        "tool": "open_nodes",
+        "user": "Pull up the details on both the 'Solar Efficiency Report' and 'Q3 Energy Trends' nodes so I can review them together."
+      },
+      {
+        "tool": "delete_observations",
+        "user": "Actually, remove that outdated note about 'panel costs declining 40%' from the report entry, it's wrong."
+      }
+    ]
+  },
+  {
+    "scenario": "A market researcher is gathering competitive intelligence on a vague industry trend before a client presentation.",
+    "turns": [
+      {
+        "tool": "simulate-research-query",
+        "user": "I need a deep dive on 'sustainable packaging trends' but I'm not sure how broad to go, can you help pull that together?"
+      },
+      {
+        "tool": "create_entities",
+        "user": "Let's create a profile entry for the leading competitor we found so I don't lose track of them."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add a note that they just launched a new biodegradable line."
+      },
+      {
+        "tool": "sequentialthinking",
+        "user": "Can you walk me through the reasoning step by step on whether this trend is worth featuring in the report?"
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Show me the structured summary data so I can verify the numbers before I quote them."
+      }
+    ]
+  },
+  {
+    "scenario": "A marketing manager is scheduling an international product launch call and pulling reference images for the campaign deck.",
+    "turns": [
+      {
+        "tool": "convert_time",
+        "user": "If our call is at 3pm in New York, what time is that for our team in Singapore?"
+      },
+      {
+        "tool": "get-resource-links",
+        "user": "Can you grab me a handful of sample resource links I could use as placeholder assets for the deck mockup?"
+      },
+      {
+        "tool": "get-sum",
+        "user": "Add 2 plus 2 for the quick budget check, just want to confirm your math tool works before I trust the bigger spreadsheet calc."
+      },
+      {
+        "tool": "get-tiny-image",
+        "user": "Fetch that tiny logo image you have so I can drop it into the slide as a placeholder."
+      },
+      {
+        "tool": "toggle-simulated-logging",
+        "user": "Turn on that random logging thing so I can see what's happening behind the scenes while I test the deck generator."
+      }
+    ]
+  },
+  {
+    "scenario": "A mobile app QA engineer is testing a settings screen on a demo web build across time zones for release notes.",
+    "turns": [
+      {
+        "tool": "get_current_time",
+        "user": "What time is it right now in Tokyo? I need it for the release notes."
+      },
+      {
+        "tool": "browser_select_option",
+        "user": "Switch the dropdown on the settings page to select 'Dark Mode' as the theme."
+      },
+      {
+        "tool": "browser_tabs",
+        "user": "Open a second tab so I can compare the settings page against the production version side by side."
+      },
+      {
+        "tool": "browser_wait_for",
+        "user": "Wait for the loading spinner to disappear before I take a screenshot."
+      },
+      {
+        "tool": "get-tiny-image",
+        "user": "Grab the tiny logo image so I can use it as a placeholder icon in my test report."
+      }
+    ]
+  },
+  {
+    "scenario": "A mobile app developer is finishing a hotfix branch and confirming environment configuration before pushing to CI.",
+    "turns": [
+      {
+        "tool": "git_diff",
+        "user": "Show me exactly what's different between my hotfix branch and main before I commit."
+      },
+      {
+        "tool": "git_add",
+        "user": "Go ahead and stage the changes in src/api/client.ts and src/api/retry.ts."
+      },
+      {
+        "tool": "git_create_branch",
+        "user": "I need a new branch called 'hotfix/retry-timeout' based off of develop."
+      },
+      {
+        "tool": "get-env",
+        "user": "Can you print out all the environment variables the MCP server is currently using?"
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "List every network request that's happened since I loaded the CI dashboard page."
+      }
+    ]
+  },
+  {
+    "scenario": "A nonprofit program coordinator is building a directory of donor contacts and verifying data pulled from an internal reporting tool before a board meeting.",
+    "turns": [
+      {
+        "tool": "create_relations",
+        "user": "Add a note linking our new donor, Maria Chen, to the Northwest chapter she's supporting."
+      },
+      {
+        "tool": "open_nodes",
+        "user": "Pull up everything we have on file about the Northwest chapter and Maria Chen together."
+      },
+      {
+        "tool": "read_graph",
+        "user": "Show me the full picture of everyone connected in our donor network right now."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Can you fetch the latest quarterly donation figures from the reporting tool and check the format matches what the board expects?"
+      },
+      {
+        "tool": "delete_entities",
+        "user": "We no longer work with the old sponsor 'GreenLeaf Corp', remove all their records from our contact map."
+      }
+    ]
+  },
+  {
+    "scenario": "A photographer is organizing a shoot archive on disk and wants to check file details before renaming and moving folders.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Can you show me the full folder structure under my 2023_Shoots directory?"
+      },
+      {
+        "tool": "get_file_info",
+        "user": "What's the size and last modified date on that RAW_export.zip file?"
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder called 'Client_Deliverables/Final' set up before I move anything."
+      },
+      {
+        "tool": "move_file",
+        "user": "Please rename the folder 'Shoot_Oct12' to 'Shoot_Oct12_Wedding' and put it under Final."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Can you pull up the contents of the shoot_notes.txt and client_brief.txt at once so I can compare them?"
       }
     ]
   },
@@ -300,6 +1250,131 @@
     ]
   },
   {
+    "scenario": "A product manager is compiling meeting notes into a relationship map of stakeholders and verifying a JSON payload from an internal analytics tool.",
+    "turns": [
+      {
+        "tool": "create_relations",
+        "user": "Add a note that our VP of Sales, Linda Park, reports directly to CEO Marcus Chen."
+      },
+      {
+        "tool": "read_graph",
+        "user": "Can you pull the full knowledge graph we've built so far so I can review it before the meeting?"
+      },
+      {
+        "tool": "delete_entities",
+        "user": "We no longer work with the vendor 'BrightPath Analytics' - please remove them entirely from our records."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Fetch the latest structured revenue data from our internal dashboard tool so I can validate the numbers."
+      },
+      {
+        "tool": "get_current_time",
+        "user": "What timezone-adjusted time is it in Tokyo right now so I can schedule the follow-up call?"
+      }
+    ]
+  },
+  {
+    "scenario": "A product manager is coordinating a cross-timezone demo call and gathering visual assets for a stakeholder update.",
+    "turns": [
+      {
+        "tool": "convert_time",
+        "user": "What time will 3pm New York time be for our team in Singapore?"
+      },
+      {
+        "tool": "fetch",
+        "user": "Pull up the article about our competitor's new feature launch so I can reference it."
+      },
+      {
+        "tool": "get-tiny-image",
+        "user": "Grab me a small placeholder logo image I can drop into the slide deck for now."
+      },
+      {
+        "tool": "browser_take_screenshot",
+        "user": "Take a picture of the current dashboard demo page for the deck."
+      },
+      {
+        "tool": "write_file",
+        "user": "Save my meeting notes to a file in the shared project folder."
+      }
+    ]
+  },
+  {
+    "scenario": "A product manager is scheduling a cross-timezone kickoff call and wants to log participant details in a shared knowledge base.",
+    "turns": [
+      {
+        "tool": "convert_time",
+        "user": "Can you figure out what 2pm in Berlin would be for our teammate in Singapore?"
+      },
+      {
+        "tool": "create_entities",
+        "user": "Great, let's add a new record for this teammate so we can track who's involved in the project."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Also note down that they prefer async updates over calls."
+      },
+      {
+        "tool": "delete_entities",
+        "user": "Actually, remove the placeholder contact we created last week by mistake."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "One more thing - drop the outdated 'reports_to' link between the old manager and this teammate, that's no longer accurate."
+      }
+    ]
+  },
+  {
+    "scenario": "A product manager is tracking stakeholder relationships and decisions in a knowledge graph while preparing for a quarterly review.",
+    "turns": [
+      {
+        "tool": "add_observations",
+        "user": "Add a note to the 'Sarah Chen' entity saying she approved the Q3 roadmap on our last call."
+      },
+      {
+        "tool": "delete_entities",
+        "user": "The 'Legacy Vendor Contract' entity isn't relevant anymore, can you get rid of it entirely?"
+      },
+      {
+        "tool": "browser_find",
+        "user": "Can you find any mentions of 'budget freeze' across the graph's data?"
+      },
+      {
+        "tool": "get-sum",
+        "user": "I need to double check a number - what's 4500 plus 3200 for the combined budget line?"
+      },
+      {
+        "tool": "get-resource-links",
+        "user": "Give me a handful of sample resource links so I can see what kind of reference material is available."
+      }
+    ]
+  },
+  {
+    "scenario": "A product owner is organizing notes about competing products and their feature sets in a shared knowledge system.",
+    "turns": [
+      {
+        "tool": "add_observations",
+        "user": "Add a note to the 'CompetitorX' entry saying they just launched a mobile app last week."
+      },
+      {
+        "tool": "create_relations",
+        "user": "Create a link showing that 'CompetitorX' competes with 'OurProduct'."
+      },
+      {
+        "tool": "delete_observations",
+        "user": "Remove that old note about CompetitorX not supporting SSO since that's no longer true."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "Actually delete the connection saying CompetitorX partners with 'VendorY', that deal fell through."
+      },
+      {
+        "tool": "sequentialthinking",
+        "user": "Walk me through reasoning step by step about which competitor poses the biggest threat this quarter."
+      }
+    ]
+  },
+  {
     "scenario": "A project manager is maintaining a knowledge base of team members and their projects.",
     "turns": [
       {
@@ -321,6 +1396,31 @@
       {
         "tool": "delete_observations",
         "user": "Actually, remove the note that Sarah is 'still onboarding' since that's outdated now."
+      }
+    ]
+  },
+  {
+    "scenario": "A project manager reviews recent commits and branch differences before writing a status update.",
+    "turns": [
+      {
+        "tool": "git_status",
+        "user": "What does the current state of my repo at ~/projects/app look like right now, any uncommitted stuff?"
+      },
+      {
+        "tool": "git_diff",
+        "user": "Show me what's changed between my feature branch and main."
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "I already staged some of those changes, can you show me exactly what's staged?"
+      },
+      {
+        "tool": "git_show",
+        "user": "Pull up the full contents of the commit with hash a1b2c3d so I can see what was included."
+      },
+      {
+        "tool": "write_file",
+        "user": "Save a summary of these changes into a file called weekly_update.txt in my project folder."
       }
     ]
   },
@@ -350,6 +1450,31 @@
     ]
   },
   {
+    "scenario": "A remote team lead is coordinating a cross-timezone sprint planning meeting and gathering reference material from a competitor's blog.",
+    "turns": [
+      {
+        "tool": "fetch",
+        "user": "Grab the article text from this competitor's blog post URL so I can read the highlights."
+      },
+      {
+        "tool": "convert_time",
+        "user": "If it's 3pm for me in Chicago, what time is that for our teammate in Berlin?"
+      },
+      {
+        "tool": "browser_tabs",
+        "user": "Open a second browser tab so I can also look at their pricing page while I read this."
+      },
+      {
+        "tool": "browser_resize",
+        "user": "Resize the browser window to a wider view so I can see both columns of the pricing table."
+      },
+      {
+        "tool": "write_file",
+        "user": "Save a copy of this article's key points into a text file on my desktop for the meeting."
+      }
+    ]
+  },
+  {
     "scenario": "A remote team member is coordinating a meeting time and preparing a small data summary for a report.",
     "turns": [
       {
@@ -371,6 +1496,56 @@
       {
         "tool": "write_file",
         "user": "Please save this updated summary text as final-report.txt in that same folder."
+      }
+    ]
+  },
+  {
+    "scenario": "A researcher is deep-diving into a niche scientific topic and wants the agent to synthesize findings while managing ambiguity in the request.",
+    "turns": [
+      {
+        "tool": "simulate-research-query",
+        "user": "I want a thorough investigation done on 'quantum battery efficiency' - can you gather and summarize what's out there?"
+      },
+      {
+        "tool": "simulate-research-query",
+        "user": "That topic might be too broad, can you check with me on what angle I actually meant before continuing?"
+      },
+      {
+        "tool": "sequentialthinking",
+        "user": "Let's break down my reasoning step by step so I can figure out which sub-question to focus on next."
+      },
+      {
+        "tool": "fetch",
+        "user": "Pull the actual article content from this specific journal page URL so I can cite it directly."
+      },
+      {
+        "tool": "write_file",
+        "user": "Save my synthesized notes on this topic into a new file for my research archive."
+      }
+    ]
+  },
+  {
+    "scenario": "A researcher is organizing meeting notes and cross-referencing them with knowledge graph entries about ongoing collaborations.",
+    "turns": [
+      {
+        "tool": "add_observations",
+        "user": "Add a note that Dr. Liang is now leading the genomics subproject, tied to her existing entry."
+      },
+      {
+        "tool": "create_entities",
+        "user": "Set up a new entry for the visiting scholar we just brought on for the summer program."
+      },
+      {
+        "tool": "delete_observations",
+        "user": "Remove the note about the old lab location since we moved buildings last month."
+      },
+      {
+        "tool": "convert_time",
+        "user": "What time would 3pm in Tokyo be for our collaborators in Berlin?"
+      },
+      {
+        "tool": "sequentialthinking",
+        "user": "Walk me through the reasoning step by step for whether we should merge these two research entities or keep them separate."
       }
     ]
   },
@@ -400,6 +1575,331 @@
     ]
   },
   {
+    "scenario": "A sales engineer is preparing a demo environment and validating a customer-facing web app's login flow before a client call.",
+    "turns": [
+      {
+        "tool": "browser_navigate_back",
+        "user": "Open up the staging login page for the demo tenant so I can look at it."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Give me a structured view of what's currently on this page so I can find the username field."
+      },
+      {
+        "tool": "browser_type",
+        "user": "Enter 'demo_client@acme.com' into the email field for me."
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "Check if there are any errors showing up in the browser console after that login attempt."
+      },
+      {
+        "tool": "browser_take_screenshot",
+        "user": "Take a picture of the dashboard once it loads so I can drop it into the client deck."
+      }
+    ]
+  },
+  {
+    "scenario": "A sales operations manager is building a knowledge graph of key accounts and verifying tool output before a leadership review.",
+    "turns": [
+      {
+        "tool": "create_entities",
+        "user": "Set up new records for these three enterprise accounts we just closed, with their basic details."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Add a note to the Acme Corp record that their renewal date moved to next quarter."
+      },
+      {
+        "tool": "open_nodes",
+        "user": "Pull up everything we have stored on the Acme Corp and Globex accounts."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Can you double check the structure of what that reporting tool returns matches what we expect before I use it in the deck?"
+      },
+      {
+        "tool": "get_current_time",
+        "user": "What time is it right now for our team in Singapore? I want to time the review call right."
+      }
+    ]
+  },
+  {
+    "scenario": "A site reliability engineer is running a live script against a staging environment and inspecting request details to catch a regression.",
+    "turns": [
+      {
+        "tool": "write_file",
+        "user": "Write me a quick script file that logs a health-check payload so I can reuse it later."
+      },
+      {
+        "tool": "browser_run_code_unsafe",
+        "user": "Run this snippet in the browser to click the retry button five times in a row and log each response."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Show me the list of network calls that happened since the page loaded."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Pull the full headers and body for request number 7 in that list."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Take a snapshot of the current page state so I can see if the retry button is now disabled."
+      }
+    ]
+  },
+  {
+    "scenario": "A site reliability engineer is stress-testing an admin panel's live behavior and toggling debug features while monitoring output.",
+    "turns": [
+      {
+        "tool": "browser_navigate",
+        "user": "Open up the admin panel so I can start poking at it."
+      },
+      {
+        "tool": "toggle-simulated-logging",
+        "user": "Turn on that random log noise generator so I can see if our console filtering handles it."
+      },
+      {
+        "tool": "toggle-subscriber-updates",
+        "user": "Now flip on the fake update stream for subscribed resources so we can test that pathway too."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Take a snapshot of the current page state so I have an accessibility baseline before I start clicking things."
+      },
+      {
+        "tool": "browser_drag",
+        "user": "Drag that status widget from the sidebar into the main dashboard area to see if it breaks the layout."
+      }
+    ]
+  },
+  {
+    "scenario": "A small business owner is auditing their team knowledge graph and reviewing a git-tracked pricing script before a stakeholder meeting.",
+    "turns": [
+      {
+        "tool": "read_graph",
+        "user": "Show me everything currently stored in our internal notes system about employees and vendors."
+      },
+      {
+        "tool": "open_nodes",
+        "user": "I only want to look at the nodes related to our two main vendors right now, not everything else."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "There's an outdated relationship between our old vendor and the 'active-supplier' tag, please remove that link."
+      },
+      {
+        "tool": "git_status",
+        "user": "What's the current status of the pricing-calculator repo, any uncommitted changes sitting around?"
+      },
+      {
+        "tool": "git_diff_staged",
+        "user": "Let me see what changes are already staged there before I commit anything."
+      }
+    ]
+  },
+  {
+    "scenario": "A small business owner is setting up their company's org chart and stakeholder contacts inside a personal knowledge tool.",
+    "turns": [
+      {
+        "tool": "create_entities",
+        "user": "Add our new accountant and our two co-founders as people I want to keep track of."
+      },
+      {
+        "tool": "add_observations",
+        "user": "Note down that our accountant, Priya, has an accounting certification and works remotely on Fridays."
+      },
+      {
+        "tool": "read_graph",
+        "user": "Can you pull up everything you currently have stored about our team so I can review it?"
+      },
+      {
+        "tool": "open_nodes",
+        "user": "Actually, just show me the details for Priya and the two co-founders specifically."
+      },
+      {
+        "tool": "delete_observations",
+        "user": "Remove the note that says Priya 'works remotely on Fridays', that's no longer accurate."
+      }
+    ]
+  },
+  {
+    "scenario": "A software engineer is reviewing a colleague's pull request and inspecting historical commits for context before approving changes.",
+    "turns": [
+      {
+        "tool": "git_show",
+        "user": "Show me what this specific commit hash actually changed in the codebase."
+      },
+      {
+        "tool": "git_checkout",
+        "user": "Switch me over to the feature branch they're proposing so I can look at it directly."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Read through both the config file and the test file so I can compare their content side by side."
+      },
+      {
+        "tool": "edit_file",
+        "user": "I want to tweak a couple of lines in this test file to fix an incorrect assertion."
+      },
+      {
+        "tool": "git_add",
+        "user": "Stage the corrected test file so it's ready to be committed."
+      }
+    ]
+  },
+  {
+    "scenario": "A solo developer is setting up and testing a new browser automation script against a demo e-commerce site.",
+    "turns": [
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill out the shipping address form on this checkout page with the sample data I have."
+      },
+      {
+        "tool": "browser_select_option",
+        "user": "Select 'Express Shipping' from the delivery options dropdown."
+      },
+      {
+        "tool": "browser_navigate_back",
+        "user": "Hit the back button to go to the cart page instead."
+      },
+      {
+        "tool": "browser_type",
+        "user": "Type 'DISCOUNT20' into the promo code box and submit it."
+      },
+      {
+        "tool": "browser_press_key",
+        "user": "Press Enter to confirm the coupon application."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is debugging a customer's reported UI glitch by inspecting browser behavior directly.",
+    "turns": [
+      {
+        "tool": "browser_console_messages",
+        "user": "Open up their site and pull any error messages that showed up in the browser log."
+      },
+      {
+        "tool": "browser_evaluate",
+        "user": "Can you run a quick script on the page to check the current value of a hidden form field?"
+      },
+      {
+        "tool": "browser_type",
+        "user": "I want to see what happens when I fill in this field manually with test data."
+      },
+      {
+        "tool": "browser_select_option",
+        "user": "There's a dropdown for country selection\u2014choose 'Canada' from it and see if the page reacts correctly."
+      },
+      {
+        "tool": "browser_close",
+        "user": "We're done troubleshooting, go ahead and shut the browser tab down."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is diagnosing a customer complaint about a broken checkout button on a live retail site.",
+    "turns": [
+      {
+        "tool": "browser_console_messages",
+        "user": "Can you pull up the checkout page and see what shows up when the button is clicked?"
+      },
+      {
+        "tool": "browser_find",
+        "user": "Search the page for any text mentioning 'error' or 'failed' so I can see what the user might have seen."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Grab the full details of that failed checkout call, headers and body included."
+      },
+      {
+        "tool": "browser_handle_dialog",
+        "user": "There's a confirmation popup blocking things, can you accept it so we can continue testing?"
+      },
+      {
+        "tool": "browser_fill_form",
+        "user": "Fill out the shipping form fields quickly so I can retest the flow end to end."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is diagnosing why a customer's dashboard widget shows stale data by inspecting frontend behavior live.",
+    "turns": [
+      {
+        "tool": "browser_click",
+        "user": "Go ahead and click the refresh icon on the dashboard widget."
+      },
+      {
+        "tool": "browser_wait_for",
+        "user": "Wait until the loading spinner disappears before we check anything else."
+      },
+      {
+        "tool": "browser_evaluate",
+        "user": "Run a quick check in the page to see what timestamp value is currently stored in the widget's data attribute."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Show me the list of network calls that fired since the page loaded."
+      },
+      {
+        "tool": "toggle-simulated-logging",
+        "user": "Turn on that random logging simulation so I can see how our monitoring reacts to noisy log output."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is diagnosing why a customer's environment variables aren't loading correctly in a deployed service.",
+    "turns": [
+      {
+        "tool": "get-env",
+        "user": "Can you pull up all the current environment variables so I can check what's configured?"
+      },
+      {
+        "tool": "directory_tree",
+        "user": "Show me the folder structure of the deployment directory so I can see what's expected there."
+      },
+      {
+        "tool": "git_diff_unstaged",
+        "user": "I need to see the differences that haven't been committed yet in that repo."
+      },
+      {
+        "tool": "git_branch",
+        "user": "What branches exist in that repository right now?"
+      },
+      {
+        "tool": "get-annotated-message",
+        "user": "Read back the response with the annotated debug message so I can see the metadata attached to it."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is diagnosing why a customer's webhook integration keeps failing by inspecting a live demo of the customer's dashboard.",
+    "turns": [
+      {
+        "tool": "browser_tabs",
+        "user": "Open the customer's staging dashboard at status.example.com in a new tab so I can look at it."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Take a look at the current state of the page and tell me what elements are actually rendered."
+      },
+      {
+        "tool": "browser_run_code_unsafe",
+        "user": "Click the 'Retry Webhook' button for me."
+      },
+      {
+        "tool": "browser_handle_dialog",
+        "user": "There's a confirmation popup asking if I'm sure, go ahead and accept it."
+      },
+      {
+        "tool": "browser_evaluate",
+        "user": "Check what value is currently stored in the hidden webhookStatus field on that page."
+      }
+    ]
+  },
+  {
     "scenario": "A support engineer is investigating a bug on a company web dashboard by inspecting the live page.",
     "turns": [
       {
@@ -421,6 +1921,556 @@
       {
         "tool": "browser_network_request",
         "user": "Show me the full request and response details for network call number 7 in the list."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is investigating a customer-reported bug by simulating a long backend job and checking logs.",
+    "turns": [
+      {
+        "tool": "trigger-long-running-operation",
+        "user": "Kick off that reindexing job on staging and keep me updated as it runs."
+      },
+      {
+        "tool": "toggle-simulated-logging",
+        "user": "Turn on the debug log stream so I can watch what's happening in real time."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Show me the list of network calls that fired while the job was processing."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Get me the full detail, body included, of request number 12 from that list."
+      },
+      {
+        "tool": "browser_take_screenshot",
+        "user": "Take a quick screenshot of the admin panel's job status widget for the ticket."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is reproducing a customer-reported bug on a checkout page and needs to capture evidence before filing a ticket.",
+    "turns": [
+      {
+        "tool": "browser_type",
+        "user": "Can you go to our staging checkout page and fill in the payment form with test card details, then submit it?"
+      },
+      {
+        "tool": "browser_select_option",
+        "user": "After submitting, pick the 'Express Shipping' option from the shipping dropdown for me."
+      },
+      {
+        "tool": "browser_network_requests",
+        "user": "Something looks off - can you list out the network calls that fired since the page loaded?"
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Pull the full details of request number 14, I want to see the headers and body."
+      },
+      {
+        "tool": "browser_close",
+        "user": "Close that browser tab now, I've got what I need."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is reproducing a customer-reported bug on a demo storefront and cross-checking recent backend commits.",
+    "turns": [
+      {
+        "tool": "browser_snapshot",
+        "user": "Let's see the current layout of the cart page before I try adding an item."
+      },
+      {
+        "tool": "browser_type",
+        "user": "Type '10' into the quantity field for the blue jacket item."
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "Check the browser logs for any errors that popped up after I updated the quantity."
+      },
+      {
+        "tool": "git_log",
+        "user": "Show me the commit history for the checkout service repo from the last three days."
+      },
+      {
+        "tool": "git_show",
+        "user": "What exactly changed in that commit from yesterday afternoon about the cart totals?"
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer is reproducing a customer-reported checkout glitch on a retailer's test environment.",
+    "turns": [
+      {
+        "tool": "browser_navigate_back",
+        "user": "Open the staging checkout page for me so I can start looking into this."
+      },
+      {
+        "tool": "browser_console_messages",
+        "user": "Let's see if there are any error messages showing up in the browser console right now."
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "Pull up the details of that failed POST request to the payment endpoint."
+      },
+      {
+        "tool": "browser_wait_for",
+        "user": "Wait for the 'Payment Declined' message to show up before I take the next screenshot."
+      },
+      {
+        "tool": "browser_run_code_unsafe",
+        "user": "I think I need to run a quick script to simulate clicking retry three times in a row."
+      }
+    ]
+  },
+  {
+    "scenario": "A support engineer works on an internal ticketing dashboard, testing a workflow and cleaning up a duplicate relationship record.",
+    "turns": [
+      {
+        "tool": "browser_snapshot",
+        "user": "Open our internal dashboard and let's see what the ticket assignment screen looks like right now."
+      },
+      {
+        "tool": "browser_drop",
+        "user": "I want to drag this attachment file onto the upload zone to test it."
+      },
+      {
+        "tool": "browser_hover",
+        "user": "Hover over the status badge, I think there's a tooltip that should appear."
+      },
+      {
+        "tool": "delete_relations",
+        "user": "I noticed we accidentally linked two team members as 'reports to' each other in the graph, can you remove that specific relation?"
+      },
+      {
+        "tool": "browser_resize",
+        "user": "Let's move the window into a smaller size to test the mobile layout."
+      }
+    ]
+  },
+  {
+    "scenario": "A sysadmin is checking environment configuration and file integrity before deploying a script to production.",
+    "turns": [
+      {
+        "tool": "get-env",
+        "user": "Show me all the environment variables currently set on this machine."
+      },
+      {
+        "tool": "git_status",
+        "user": "Check what branch the deployment repo is currently on and if there's anything uncommitted."
+      },
+      {
+        "tool": "git_checkout",
+        "user": "Switch the repo over to the 'release-1.4' branch before we continue."
+      },
+      {
+        "tool": "git_add",
+        "user": "Stage the updated deploy.sh and config.yaml files for commit."
+      },
+      {
+        "tool": "echo",
+        "user": "Just to sanity check, echo back the deployment confirmation message I'm about to send to the team."
+      }
+    ]
+  },
+  {
+    "scenario": "A systems administrator is auditing server log behavior and diffing a config repo before applying a hotfix.",
+    "turns": [
+      {
+        "tool": "toggle-simulated-logging",
+        "user": "Turn on that random log noise generator so I can see how our dashboard handles a busy log stream."
+      },
+      {
+        "tool": "git_diff_unstaged",
+        "user": "Show me what's changed in the config repo since the last commit but not staged yet."
+      },
+      {
+        "tool": "git_reset",
+        "user": "Actually, unstage everything I added earlier, I want to start the review fresh."
+      },
+      {
+        "tool": "git_diff",
+        "user": "Now compare the current branch against the 'stable' branch to see the full set of differences."
+      },
+      {
+        "tool": "git_checkout",
+        "user": "Switch me over to the 'hotfix-log-rotation' branch so I can apply the patch."
+      }
+    ]
+  },
+  {
+    "scenario": "A systems administrator is preparing log files for transfer to a remote archive and verifying long-running batch jobs.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Show me the full folder structure for the logs directory so I know what's in there before I start."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "I need details on this particular log file, like when it was last modified and how big it is."
+      },
+      {
+        "tool": "trigger-long-running-operation",
+        "user": "Kick off that batch cleanup job and let me watch it progress over the next few minutes."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Compress this log file down so I can send a smaller version to the remote team."
+      },
+      {
+        "tool": "toggle-subscriber-updates",
+        "user": "Can you turn on notifications so I get pinged whenever something changes in that watched resource?"
+      }
+    ]
+  },
+  {
+    "scenario": "A team lead is reorganizing shared project folders and syncing a small git repo used for internal scripts.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Give me a full tree view of everything inside the scripts project folder."
+      },
+      {
+        "tool": "move_file",
+        "user": "I want to rename the 'old_utils' folder to 'archive_utils'."
+      },
+      {
+        "tool": "search_files",
+        "user": "Find any Python files anywhere under this project that match a naming pattern."
+      },
+      {
+        "tool": "git_status",
+        "user": "Check whether there are any uncommitted changes in that repo."
+      },
+      {
+        "tool": "git_commit",
+        "user": "Go ahead and commit the changes with a message about the folder cleanup."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical support engineer is helping a customer troubleshoot a login issue on a web portal by inspecting the page and testing the flow live.",
+    "turns": [
+      {
+        "tool": "browser_navigate_back",
+        "user": "Open the customer's staging portal login page for me."
+      },
+      {
+        "tool": "browser_snapshot",
+        "user": "Grab me a structured view of what's currently on the page so I can find the login button."
+      },
+      {
+        "tool": "browser_click",
+        "user": "Go ahead and click the 'Sign In' button."
+      },
+      {
+        "tool": "browser_type",
+        "user": "Type in the test credentials into the username field."
+      },
+      {
+        "tool": "browser_find",
+        "user": "Can you search the page for any text mentioning 'error' or 'invalid'?"
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is archiving old documentation files and wants to compress them before sending to a colleague.",
+    "turns": [
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "Can you show me everything inside the docs-archive folder along with how big each file is?"
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "I need the full text of the changelog and the README files at once to compare them."
+      },
+      {
+        "tool": "move_file",
+        "user": "Rename the old-notes.txt file to legacy-notes.txt and move it into the archive subfolder."
+      },
+      {
+        "tool": "get_file_info",
+        "user": "Give me the detailed metadata on that legacy-notes.txt file, like when it was last modified."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Now compress the changelog file so I can attach a smaller version in my email."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is assembling a documentation package from various markdown files scattered across a project folder.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Show me the folder structure of the docs project so I know what we're working with."
+      },
+      {
+        "tool": "search_files",
+        "user": "Find every markdown file in there, including nested folders."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Open up the intro.md, setup.md, and faq.md files so I can compare their content."
+      },
+      {
+        "tool": "write_file",
+        "user": "Combine those into one master file called combined-guide.md."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Now zip up that combined guide so I can send it to the reviewer."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is assembling a folder of API documentation drafts and wants to confirm everything is organized before publishing.",
+    "turns": [
+      {
+        "tool": "list_directory",
+        "user": "Can you show me everything sitting inside the docs/api-drafts folder right now?"
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder called docs/api-drafts/v2 for the next revision, set it up for me."
+      },
+      {
+        "tool": "search_files",
+        "user": "Find every markdown file in the whole docs tree so I can check they're all accounted for."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Pull up the contents of intro.md, auth.md, and errors.md together so I can compare their tone."
+      },
+      {
+        "tool": "write_file",
+        "user": "Replace the contents of changelog.md with this updated version I just drafted."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is auditing a documentation repository's file structure before restructuring the docs into a new folder hierarchy.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Can you show me the full folder layout of the docs repo so I understand what's currently there?"
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder called 'archive/legacy-guides' set up inside the docs directory."
+      },
+      {
+        "tool": "search_files",
+        "user": "Find every markdown file anywhere in the repo that has 'deprecated' in its name."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Pull up the contents of the three deprecated guides I found so I can decide what to keep."
+      },
+      {
+        "tool": "edit_file",
+        "user": "In the intro guide, replace the outdated setup instructions section with the new onboarding steps I'm pasting."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is documenting a REST API by exploring sample endpoints and archiving generated documentation files.",
+    "turns": [
+      {
+        "tool": "fetch",
+        "user": "Can you pull the JSON content from this API documentation URL and convert it to something readable?"
+      },
+      {
+        "tool": "browser_network_request",
+        "user": "I need to see the full first request and response my test script made against that endpoint, headers included."
+      },
+      {
+        "tool": "read_text_file",
+        "user": "Let's peek at just the top 20 lines of the generated markdown file before I commit it."
+      },
+      {
+        "tool": "edit_file",
+        "user": "I want to update the changelog file, replacing the old version line with the new release notes."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Package up the final docs folder as a single compressed file I can hand off to the client."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is finalizing documentation edits and wants to confirm changes before publishing.",
+    "turns": [
+      {
+        "tool": "git_diff",
+        "user": "Show me what's different between my local draft branch and the published version."
+      },
+      {
+        "tool": "git_show",
+        "user": "Let me see the exact content that was committed last release."
+      },
+      {
+        "tool": "edit_file",
+        "user": "Update the intro paragraph in the setup guide to mention the new install steps."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Can you pull up both the changelog and the README so I can compare them side by side?"
+      },
+      {
+        "tool": "git_add",
+        "user": "Stage the changelog file so it's ready to be committed."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is organizing documentation source files for a new product release and verifying folder structure before publishing.",
+    "turns": [
+      {
+        "tool": "directory_tree",
+        "user": "Can you show me the full folder layout of the docs project so I know what's already there?"
+      },
+      {
+        "tool": "create_directory",
+        "user": "I need a new folder called 'release-notes/v2.3' set up inside the docs directory."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Pull up the contents of the changelog and migration-guide files so I can compare them side by side."
+      },
+      {
+        "tool": "write_file",
+        "user": "Write out this finalized release summary text into a new file in that release-notes folder."
+      },
+      {
+        "tool": "fetch",
+        "user": "Grab me the latest content from our public API reference page online so I can quote the correct endpoint names."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is preparing a support article by testing a live chat widget on a company site and cataloging screenshot assets stored on disk.",
+    "turns": [
+      {
+        "tool": "list_directory",
+        "user": "Can you check what's inside the assets folder where we keep the chat widget screenshots?"
+      },
+      {
+        "tool": "browser_tabs",
+        "user": "Open a new browser tab to the support site so I can test the chat widget alongside my notes."
+      },
+      {
+        "tool": "browser_hover",
+        "user": "Click on the chat bubble icon in the corner of the page."
+      },
+      {
+        "tool": "browser_type",
+        "user": "Type 'Hello, I need help with billing' into the chat input box."
+      },
+      {
+        "tool": "browser_wait_for",
+        "user": "Wait until the word 'Connected' shows up in the chat window."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is preparing release notes and wants to verify small data snippets before publishing documentation updates.",
+    "turns": [
+      {
+        "tool": "get-sum",
+        "user": "Can you check what 47 plus 128 comes out to? I need it for the changelog stats."
+      },
+      {
+        "tool": "get-annotated-message",
+        "user": "I want to see how the annotation feature works for embedding metadata in a message before I document it."
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Pull up the structured data sample so I can see the expected schema for our config docs."
+      },
+      {
+        "tool": "echo",
+        "user": "Just say something back to me so I can confirm the connection is still alive before I keep working."
+      },
+      {
+        "tool": "get-tiny-image",
+        "user": "Grab that placeholder logo image so I can drop it into the docs as a sample asset."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is reviewing a colleague's recent git changes and preparing example resource links for new documentation.",
+    "turns": [
+      {
+        "tool": "git_diff",
+        "user": "Show me what changed between the develop branch and main so I can document it."
+      },
+      {
+        "tool": "git_diff_unstaged",
+        "user": "What's still uncommitted right now in that repo folder?"
+      },
+      {
+        "tool": "git_branch",
+        "user": "List out the branches that mention 'docs' in their name."
+      },
+      {
+        "tool": "get-resource-links",
+        "user": "Give me a handful of example resource links I can use to demo the linking feature in the docs."
+      },
+      {
+        "tool": "get-resource-reference",
+        "user": "I need one reference to a sample image resource for the tutorial screenshot section."
+      }
+    ]
+  },
+  {
+    "scenario": "A technical writer is updating an internal style guide document and checking the project's file structure before archiving old drafts.",
+    "turns": [
+      {
+        "tool": "list_directory_with_sizes",
+        "user": "Show me what's inside the docs/drafts folder along with how big each file is."
+      },
+      {
+        "tool": "read_multiple_files",
+        "user": "Open both the old and new versions of the style-guide.md file so I can compare them."
+      },
+      {
+        "tool": "edit_file",
+        "user": "Replace the outdated section on voice and tone with this updated wording I'm giving you."
+      },
+      {
+        "tool": "write_file",
+        "user": "Create a fresh changelog.md file with this summary of today's edits."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Bundle up the old drafts folder into a compressed archive I can send to the team."
+      }
+    ]
+  },
+  {
+    "scenario": "A user compresses log files for sharing and checks disk usage before sending them to a teammate.",
+    "turns": [
+      {
+        "tool": "list_directory",
+        "user": "Can you show me what's inside my /Users/me/logs directory?"
+      },
+      {
+        "tool": "get_file_info",
+        "user": "I need to know the exact size and last modified date of the app.log file in there."
+      },
+      {
+        "tool": "gzip-file-as-resource",
+        "user": "Please shrink that log file down so it's easier to email, and just give me a link I can download it from."
+      },
+      {
+        "tool": "list_allowed_directories",
+        "user": "Before I forget, what folders am I even allowed to work with through you?"
+      },
+      {
+        "tool": "write_file",
+        "user": "Write a short summary note into /Users/me/logs/summary.txt explaining what was in the log."
       }
     ]
   },
@@ -971,6 +3021,81 @@
       {
         "tool": "browser_network_request",
         "user": "Pull up the full details, headers and everything, for request number 12."
+      }
+    ]
+  },
+  {
+    "scenario": "An e-commerce merchandiser is testing a new checkout promo banner and organizing screenshots for the marketing team.",
+    "turns": [
+      {
+        "tool": "browser_take_screenshot",
+        "user": "Go to the staging store page and grab a full-page image of how the promo banner looks."
+      },
+      {
+        "tool": "browser_drag",
+        "user": "Move the sample discount code icon into the drop zone on the promo builder tool."
+      },
+      {
+        "tool": "browser_find",
+        "user": "Can you search the page for any mention of 'expired' so I know if old promo text is still showing?"
+      },
+      {
+        "tool": "browser_file_upload",
+        "user": "I need to upload our new banner image file into the asset uploader on that page."
+      },
+      {
+        "tool": "browser_close",
+        "user": "Once you're done testing, go ahead and close that browser tab."
+      }
+    ]
+  },
+  {
+    "scenario": "An operations analyst is calculating budget totals and cross-checking a currency conversion figure while assembling a quarterly report.",
+    "turns": [
+      {
+        "tool": "get-sum",
+        "user": "Add up the marketing spend of 45210 and the sales spend of 38790 for me."
+      },
+      {
+        "tool": "get-sum",
+        "user": "Now run a quick calculation combining that total with our leftover reserve of 12000."
+      },
+      {
+        "tool": "fetch",
+        "user": "Can you fetch the current published exchange rate figures from our finance vendor's public page?"
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "I want to see what kind of structured budget data format the reporting tool expects before I format mine the same way."
+      },
+      {
+        "tool": "write_file",
+        "user": "Save my final combined report numbers into a text file in the quarterly-reports folder."
+      }
+    ]
+  },
+  {
+    "scenario": "An operations analyst is monitoring a long-running batch job and wants to check progress alongside some quick calculations.",
+    "turns": [
+      {
+        "tool": "trigger-long-running-operation",
+        "user": "Kick off that long batch simulation with about 8 steps so I can watch how it progresses."
+      },
+      {
+        "tool": "simulate-research-query",
+        "user": "While that's running, can you research the topic of 'supply chain resilience trends' for me?"
+      },
+      {
+        "tool": "get-structured-content",
+        "user": "Pull the structured output for the warehouse inventory location so I can check the schema."
+      },
+      {
+        "tool": "get-sum",
+        "user": "Add up 128 and 947 real quick, need it for this report."
+      },
+      {
+        "tool": "list_allowed_directories",
+        "user": "Which directories am I actually allowed to pull files from with this tool?"
       }
     ]
   }

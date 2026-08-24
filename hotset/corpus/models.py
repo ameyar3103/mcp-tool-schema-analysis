@@ -13,6 +13,7 @@ class Tool(BaseModel):
     input_schema: dict = Field(default_factory=dict)
     server: str = ""  # provenance: which MCP server exposed it
     synthetic: bool = False  # generated near-duplicate distractor
+    twin_of: str = ""  # for a distractor, the real tool it was derived from
 
     @property
     def arg_names(self) -> list[str]:

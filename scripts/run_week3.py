@@ -11,6 +11,7 @@ from hotset.corpus.harvest import load
 from hotset.eval.runner import run_arm, save, summarize
 from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
+from hotset.eval.workload import concentration, trace
 from hotset.policy.adaptive import HotSet
 from hotset.policy.baselines import (
     FullCatalog,
@@ -28,11 +29,18 @@ HEAD = f"{'arm':16} {'acc':>6} {'halluc':>7} {'hit':>6} {'prompt':>8} {'hops':>5
 HORIZON = 50
 
 
-def main(model: str = "qwen-flash", size: int = 300) -> None:
+def main(
+    model: str = "qwen-flash", size: int = 300, version: int = 2, skew: float = 0.0
+) -> None:
     spec = MODELS[model]
     base = load()
-    catalog = base if size == len(base) else pad_catalog(base, size, seed=0)
+    catalog = base if size == len(base) else pad_catalog(base, size, seed=0, version=version)
     train, test = split(load_tasks())
+    if skew:
+        # Same questions, different arrival mix: isolates workload concentration from
+        # task difficulty, which a freshly generated skewed suite could not.
+        servers = {t.name: t.server for t in base}
+        test = trace(test, servers, skew=skew, length=len(test), seed=0)
     salt = uuid.uuid4().hex[:8]
 
     predictor = LRUK(k=2)
@@ -48,11 +56,12 @@ def main(model: str = "qwen-flash", size: int = 300) -> None:
     ]
     print(
         f"{model} | catalog {len(catalog)} | test {len(test)} sessions "
-        f"({sum(len(s.turns) for s in test)} turns) | salt {salt}\n\n{HEAD}"
+        f"({sum(len(s.turns) for s in test)} turns) | skew {skew} "
+        f"| top5 {concentration(test)[0]:.1%} peak/50 {concentration(test)[1]} | salt {salt}\n\n{HEAD}"
     )
     for arm in arms:
         results = run_arm(arm, spec, catalog, test, salt=salt)
-        save(results, f"{arm.name}-{model}-{len(catalog)}-{salt}")
+        save(results, f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}")
         m = summarize(results)
         print(
             f"{arm.name:16} {m['accuracy']:6.1%} {m['hallucinated']:7.1%} {m['hit_rate']:6.1%} "
@@ -65,4 +74,11 @@ def main(model: str = "qwen-flash", size: int = 300) -> None:
 
 
 if __name__ == "__main__":
-    main(*(sys.argv[1:2] or []), **({"size": int(sys.argv[2])} if len(sys.argv) > 2 else {}))
+    opts = {}
+    if len(sys.argv) > 2:
+        opts["size"] = int(sys.argv[2])
+    if len(sys.argv) > 3:
+        opts["version"] = int(sys.argv[3])
+    if len(sys.argv) > 4:
+        opts["skew"] = float(sys.argv[4])
+    main(*(sys.argv[1:2] or []), **opts)

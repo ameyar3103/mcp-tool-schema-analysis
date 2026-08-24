@@ -33,6 +33,7 @@ class TurnResult(BaseModel):
     predicted: str = ""
     correct: bool = False
     hallucinated: bool = False  # named a tool that is not in the catalog
+    twin: bool = False  # named a synthetic near-duplicate of the labeled tool
     hops: int = 0  # extra round trips before the real call
     cached: int = 0
     written: int = 0
@@ -64,6 +65,9 @@ def run_session(
 ):
     """Replay one scenario in order, keeping history so the cache can actually warm."""
     names = {t.name for t in catalog}
+    # A distractor derived from the labeled tool is a near-identical description, so
+    # only the label distinguishes them. Scored separately, not silently as wrong.
+    twins = {t.name: t.twin_of for t in catalog if t.twin_of}
     sid, history, out = uuid.uuid4().hex, [], []
     getattr(policy, "reset", lambda: None)()  # scenario boundary, not a state wipe
 
@@ -111,6 +115,7 @@ def run_session(
             getattr(policy, "observe", lambda _: None)(name)
             result.correct = name == turn.tool
             result.hallucinated = bool(name) and name not in names
+            result.twin = twins.get(name, "") == turn.tool
             history.append(
                 {"role": "assistant", "content": "", "tool_calls": message["tool_calls"]}
             )
@@ -173,6 +178,11 @@ def summarize(results: list[TurnResult]) -> dict:
         "errors": len(results) - len(scored),
         "accuracy": sum(r.correct for r in scored) / n,
         "hallucinated": sum(r.hallucinated for r in scored) / n,
+        "twin": sum(r.twin for r in scored) / n,
+        # Credits a synthetic near-duplicate of the labeled tool. Strict accuracy asks
+        # the model to guess which of two near-identical entries the label picked;
+        # lenient accuracy measures whether it found the right capability.
+        "lenient_accuracy": sum(r.correct or r.twin for r in scored) / n,
         "hit_rate": sum(r.hit_rate() for r in turns_with_prompt) / (len(turns_with_prompt) or 1),
         "prompt_tokens": sum(r.prompt_tokens for r in results) / n,
         "hops": sum(r.hops for r in scored) / n,

@@ -84,8 +84,22 @@ _GENERIC_CLAUSES = [
 ]
 
 
-def _clause(server: str, rng: random.Random) -> str:
+# v1's pool, kept so both corpora stay reproducible. Retiring it would make every
+# result measured against it unrepeatable, which is what a version number is for.
+_CLAUSES_V1 = [
+    "Results are not paginated.",
+    "Paths resolve relative to the workspace root.",
+    "Fails instead of overwriting existing entries.",
+    "Includes hidden and ignored entries.",
+    "Returns a compact representation without metadata.",
+    "Runs without acquiring a lock.",
+]
+
+
+def _clause(server: str, rng: random.Random, version: int = CORPUS_VERSION) -> str:
     """A differentiator plausible for this server's domain."""
+    if version < 2:
+        return rng.choice(_CLAUSES_V1)
     return rng.choice(_CLAUSES.get(server, _GENERIC_CLAUSES))
 
 
@@ -114,21 +128,28 @@ def _variant_name(source: Tool, rng: random.Random) -> str:
     return "_".join(parts)
 
 
-def make_distractor(source: Tool, rng: random.Random) -> Tool:
+def make_distractor(source: Tool, rng: random.Random, version: int = CORPUS_VERSION) -> Tool:
     """Clone a real tool under a confusable but still distinguishable identity."""
     # Description keeps the source's shape: a giveaway marker would make synthetics
     # trivially separable and collapse the token accounting the benchmark depends on.
     desc = _swap_synonym(source.description, rng) or source.description
     return Tool(
         name=_variant_name(source, rng),
-        description=f"{desc.rstrip().rstrip('.')}. {_clause(source.server, rng)}",
+        description=f"{desc.rstrip().rstrip('.')}. {_clause(source.server, rng, version)}",
         input_schema=source.input_schema,  # unchanged: keeps token accounting realistic
         server=f"{source.server}-alt",
         synthetic=True,
+        # Named so scoring can tell "picked the synthetic twin" apart from "picked an
+        # unrelated tool". The two are labeled identically wrong and are not the same
+        # failure: a twin's description is near-identical, so the label, not the model,
+        # decides which one is right.
+        twin_of=source.name,
     )
 
 
-def pad_catalog(tools: list[Tool], target: int, seed: int = 0) -> list[Tool]:
+def pad_catalog(
+    tools: list[Tool], target: int, seed: int = 0, version: int = CORPUS_VERSION
+) -> list[Tool]:
     """Grow the catalog to `target` tools; seeded so the corpus stays reproducible."""
     rng = random.Random(seed)
     out = list(tools)
@@ -136,7 +157,7 @@ def pad_catalog(tools: list[Tool], target: int, seed: int = 0) -> list[Tool]:
     for _ in range(target * 100):  # bounded: name space may be smaller than target
         if len(out) >= target:
             break
-        candidate = make_distractor(rng.choice(tools), rng)
+        candidate = make_distractor(rng.choice(tools), rng, version)
         if candidate.name in seen:
             continue
         seen.add(candidate.name)

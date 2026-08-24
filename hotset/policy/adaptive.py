@@ -39,6 +39,9 @@ class HotSet:
         self.hot: list[Tool] = []
         self._bm25: BM25 | None = None
         self._head_tokens: tuple[int, int] | None = None
+        # A schema's token count never changes, but it is re-read for every candidate
+        # on every turn: 300 tools x 310 turns is 93k tokenizer calls without this.
+        self._schema_tokens: dict[str, int] = {}
 
     def _head(self, catalog: list[Tool]) -> int:
         """Tokens above layer B. Catalog-sized, so measure it once per catalog."""
@@ -48,10 +51,15 @@ class HotSet:
             self._head_tokens = (len(catalog), estimate(text, self.spec.token_scale))
         return self._head_tokens[1]
 
+    def _schema(self, tool: Tool) -> int:
+        """Token cost of admitting this tool, memoized per catalog entry."""
+        if tool.name not in self._schema_tokens:
+            self._schema_tokens[tool.name] = estimate(layer_b([tool]), self.spec.token_scale)
+        return self._schema_tokens[tool.name]
+
     def _threshold(self, tool: Tool, segment: int) -> float:
         """Break-even for this specific tool: bigger schemas earn admission sooner."""
-        schema = estimate(layer_b([tool]), self.spec.token_scale)
-        return break_even(self.spec, schema, segment, self.horizon)
+        return break_even(self.spec, self._schema(tool), segment, self.horizon)
 
     def observe(self, tool: str) -> None:
         """What the agent actually called, which is all a deployment can see."""
