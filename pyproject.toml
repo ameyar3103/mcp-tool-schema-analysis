@@ -18,7 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Backends are optional so the simulator + tests install lean and run in CI.
-dev = ["pytest", "pytest-cov", "ruff"]
+dev = ["pytest", "pytest-cov", "ruff", "matplotlib"]
 
 [tool.setuptools.packages.find]
 include = ["hotset*"]
