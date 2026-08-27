@@ -54,6 +54,50 @@ class LRUK:
         return sorted(scored, key=lambda p: (-p[1], p[0]))
 
 
+class Rate:
+    """Decayed call rate over the whole observation window, shrunk toward zero.
+
+    LRU-K estimates a rate as k/span, where span is the shortest recent window holding
+    k hits. That denominator is *selected to be small*: it conditions on a burst and
+    then extrapolates the burst across the horizon, which over-forecasts by ~20x on
+    bursty traffic. Dividing by every turn actually watched removes the selection.
+
+    Decay keeps it responsive -- a tool hot fifty turns ago should not hold a schema
+    forever -- and `prior` pseudo-turns of zero-evidence shrinkage stop a tool's first
+    call from implying a rate at all. Admission is asymmetric: a false admit rewrites
+    the prefix, a false decline costs one tail-load.
+    """
+
+    name = "rate"
+
+    def __init__(self, half_life: float = 50.0, prior: float = 25.0) -> None:
+        self.gamma = 0.5 ** (1.0 / half_life)
+        self.prior = prior
+        self.counts: dict[str, float] = defaultdict(float)
+        self.window = 0.0  # decayed turns observed, the honest denominator
+
+    def advance(self) -> None:
+        """Decay everything one turn, including turns where nothing was called."""
+        self.window = self.window * self.gamma + 1.0
+        for name in self.counts:
+            self.counts[name] *= self.gamma
+
+    def reset(self) -> None:
+        """One continuous deployment, same as LRU-K: rates survive session boundaries."""
+
+    def observe(self, tool: str) -> None:
+        if tool:
+            self.counts[tool] += 1.0
+
+    def expected_uses(self, tool: str, horizon: int) -> float:
+        """Horizon times a rate that is a real fraction of observed turns."""
+        return horizon * self.counts.get(tool, 0.0) / (self.window + self.prior)
+
+    def ranked(self, names: list[str], horizon: int) -> list[tuple[str, float]]:
+        scored = [(n, self.expected_uses(n, horizon)) for n in names]
+        return sorted(scored, key=lambda p: (-p[1], p[0]))
+
+
 class Markov:
     """First-order transitions blended into the marginal rate as context decays.
 

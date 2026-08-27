@@ -71,3 +71,33 @@ def test_each_tool_admitted_once():
     names = ["t0"] * 40
     rows = replay(Oracle(names), names, 6)
     assert len(rows) == 1
+
+
+def test_epoch_batches_rewrites():
+    """Freezing membership between epochs must cut prefix rewrites, not hot-set size."""
+    names = [f"t{i % 12}" for i in range(120)]
+    cat = catalog(12)
+    counts = {}
+    for epoch in (1, 20):
+        arm = HotSet(SPEC, Oracle(names), horizon=HORIZON, epoch=epoch)
+        for s in sessions(names):
+            arm.reset()
+            for t in s.turns:
+                arm.plan(cat, [], t.user)
+                arm.observe(t.tool)
+        counts[epoch] = arm.rewrites
+    assert counts[20] < counts[1], counts
+
+
+def test_budget_ignores_break_even():
+    """A budget buys the top-N regardless of n*, which is the point: schemas buy accuracy."""
+    names = [f"t{i}" for i in range(60)]  # flat, so nothing clears break-even
+    cat = catalog(60)
+    arm = HotSet(SPEC, Oracle(names), horizon=HORIZON, budget=8, tail_k=0)
+    for s in sessions(names):
+        arm.reset()
+        for t in s.turns:
+            plan = arm.plan(cat, [], t.user)
+            arm.observe(t.tool)
+    assert len(arm.hot) == 8
+    assert plan.tail == []  # tail_k=0 suppresses layer C entirely
