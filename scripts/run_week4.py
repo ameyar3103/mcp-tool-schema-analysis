@@ -18,7 +18,7 @@ from hotset.eval.significance import compare
 from hotset.eval.spans import Recorder
 from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
-from hotset.eval.workload import concentration, trace
+from hotset.eval.workload import concentration, repeat, trace
 from hotset.policy.adaptive import HotSet
 from hotset.policy.baselines import IndexOnly
 from hotset.policy.predictors import LRUK, Ensemble, Markov, Oracle, warm
@@ -50,12 +50,20 @@ def build(spec, train, test):
 
 
 def main(
-    model: str = "qwen-flash", size: int = 300, version: int = 2, skew: float = 0.0
+    model: str = "qwen-flash",
+    size: int = 300,
+    version: int = 2,
+    skew: float = 0.0,
+    reuse: float = 0.0,
 ) -> None:
     spec = MODELS[model]
     base = load()
     catalog = base if size == len(base) else pad_catalog(base, size, seed=0, version=version)
     train, test = split(load_tasks())
+    if reuse:
+        # Applied before build(), so the oracle's future is the trace actually served.
+        # Without reuse the oracle admits nothing and every arm emits identical plans.
+        test = repeat(test, rate=reuse, seed=0)
     if skew:
         # Same questions, different arrival mix: isolates workload concentration from
         # task difficulty, which a freshly generated skewed suite could not.
@@ -66,12 +74,12 @@ def main(
     arms = [IndexOnly(), *build(spec, train, test)]  # index-only is the no-admission floor
     print(
         f"{model} | catalog {len(catalog)} | test {len(test)} sessions "
-        f"({sum(len(s.turns) for s in test)} turns) | skew {skew} "
+        f"({sum(len(s.turns) for s in test)} turns) | skew {skew} reuse {reuse} "
         f"| top5 {concentration(test)[0]:.1%} peak/50 {concentration(test)[1]} | salt {salt}\n\n{HEAD}"
     )
     collected = {}
     for arm in arms:
-        tag = f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}"
+        tag = f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}r{reuse:g}-{salt}"
         rec = Recorder(arm.name, spec.slug)  # traces answer "did it degrade mid-run"
         results = run_arm(arm, spec, catalog, test, salt=salt, recorder=rec)
         save(results, tag)
@@ -94,12 +102,13 @@ def main(
             print(f"{c.a:16} vs {c.b:16} {c.a_only:3}/{c.b_only:<3}  p={c.p_value:.3f}{mark}")
 
 
+USAGE = "usage: run_week4.py [model] [size] [version] [skew] [reuse]"
+
 if __name__ == "__main__":
-    opts = {}
-    if len(sys.argv) > 2:
-        opts["size"] = int(sys.argv[2])
-    if len(sys.argv) > 3:
-        opts["version"] = int(sys.argv[3])
-    if len(sys.argv) > 4:
-        opts["skew"] = float(sys.argv[4])
-    main(*(sys.argv[1:2] or []), **opts)
+    # Typed positionals, extras rejected: a silently ignored argument once bought a
+    # full paid sweep of the workload it was meant to replace.
+    casts = [str, int, int, float, float]
+    if len(sys.argv) - 1 > len(casts):
+        raise SystemExit(USAGE)
+    names = ["model", "size", "version", "skew", "reuse"]
+    main(**{n: c(v) for n, c, v in zip(names, casts, sys.argv[1:])})
