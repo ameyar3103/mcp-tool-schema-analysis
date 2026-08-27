@@ -256,3 +256,48 @@ The `over-forecast` column for the oracle is 1.0x by construction: it counts the
 window it predicts. The informative column there is `admitted` — 0 → 22 → 28 across
 reuse rates, which measures how much the workload leaves on the table before any
 predictor is chosen.
+
+## Reuse, added on purpose, and admission still never fires on a one-breakpoint provider
+
+`repeat()` raised peak uses per 50-turn horizon from 4 to 9 — past the n*≈7.8–9.2 that
+fires on Haiku. Re-running the week-3 sweep on qwen-flash over 620 turns:
+
+| arm | strict | twin | lenient | halluc | hit | prompt tok | $/turn | $/correct |
+|---|---|---|---|---|---|---|---|---|
+| lazy-discovery | **56.0%** | 5.3% | 61.3% | 0.0% | 12.6% | 6,400 | $0.000186 | $0.000332 |
+| static-hot-set | 44.7% | 13.7% | 58.4% | 2.7% | 96.8% | 13,941 | $0.000101 | **$0.000225** |
+| rag-over-tools | 37.4% | 16.6% | 54.0% | 11.6% | 42.3% | 2,258 | **$0.000058** | $0.000156 |
+| hotset | 35.2% | **31.1%** | **66.3%** | 2.4% | 92.5% | 12,559 | $0.000105 | $0.000299 |
+| full-catalog | 34.8% | 29.2% | 64.0% | 5.3% | 98.4% | 39,384 | $0.000260 | $0.000745 |
+| index-only | 32.9% | 19.2% | 52.1% | 7.1% | 96.4% | 11,974 | $0.000088 | $0.000268 |
+
+**`hot set at end (0): []`.** Nothing was admitted, at any point, on any turn. The
+workload cleared the bar the *other* provider sets and never came close to this one's.
+With one cache breakpoint the rewritten segment is the entire 11,641-token prefix rather
+than the hot block, which puts n* at 98–142 against a 50-turn horizon. Admission is
+decided by the provider's cache architecture before the traffic is consulted at all.
+
+At n=620 the detectable gap falls to 2.8%, so this is the best-powered sweep in the
+project. `static-hot-set` beats `index-only` by **11.8 points strict** and
+`full-catalog` by **9.9 points strict at 39% of the cost**.
+
+## Schema presence is itself the disambiguation signal
+
+The twin column above, read across the three schema regimes, explains every accuracy
+result in the project:
+
+| regime | who carries a schema | twin rate, haiku | twin rate, qwen |
+|---|---|---|---|
+| `index-only` | nobody | 19.7% | 19.2% |
+| `static-K` | the real tool only | **3.2%** (K=64) | **13.7%** (K=16) |
+| `hotset` | whatever BM25 retrieved, usually the twin | 21.9% | 31.1% |
+| `full-catalog` | the tool *and* its twin | 14.8% | 29.2% |
+
+When only the genuine tool carries a schema and its near-duplicate carries a bare name,
+"has a schema" is evidence of being the genuine one, and twin confusion collapses. Give
+both a schema and the signal disappears. Give it to the twin and not the target — which
+is what layer C does on 98% of turns — and the signal is inverted.
+
+That makes selective schema inclusion **better than complete inclusion**, not merely
+cheaper, which is a stronger claim than the one the project set out to make. It also
+predicts `full-catalog` must sit below `static-64` on strict accuracy.
