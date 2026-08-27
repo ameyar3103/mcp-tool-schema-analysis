@@ -61,21 +61,31 @@ See [docs/admission.md](docs/admission.md).
 ## Why admission loses here
 
 The break-even rule is a statement about *call rates*, and this suite does not produce
-them. Each scenario calls one tool per turn and never calls the same tool twice, so the
-empirical per-tool rate over a session sits far below `n*` for every tool in the catalog.
-The oracle predictor — which sees the future and admits whatever clears break-even —
-admits **nothing**. LRU-K admits three, so LRU-K is wrong, and the live Haiku numbers are
-exactly the price of being wrong: three prefix re-warms nobody asked for.
+them. Each scenario calls one tool per turn and rarely calls the same tool twice, so the
+empirical per-tool rate sits far below `n*` for every tool in the catalog. The oracle
+predictor — which sees the future and admits whatever clears break-even — admits
+**nothing**. LRU-K admits 32 distinct tools over the run, and `0` of those 32 are used
+often enough to repay their schema. The live Haiku numbers are exactly the price of
+being wrong: prefix re-warms nobody asked for.
 
-That makes this a clean negative result rather than a bug. Admission is a bet that a tool
-will be called often enough to amortise its cached schema; on bursty, repetitive traffic
-the bet is good, and on flat single-shot traffic there is no bet to make. The honest
-scope claim is: **layer A (drop the schemas) is where the money is, and layer B/C need a
-workload with intra-session tool reuse before they can be evaluated at all.**
+So the loss is a *forecasting* failure, not a pricing one. `expected_uses` reads a
+backward K-distance as a rate and extrapolates it across the horizon, which
+**over-forecasts by 22x** on this trace: two calls three turns apart imply 33 uses
+against a threshold of 5. Five-turn sessions produce exactly those bursts, so the bias
+is aligned with the workload rather than random, and does not average out over 310 turns.
 
-The week-4 predictor ablation inherits this. On qwen the hot set is empty for all four
-predictors, so oracle, ensemble, markov and LRU-K emit byte-identical plans and are
-indistinguishable (p >= 0.163) — a null by construction, not evidence of parity.
+Adding intra-session reuse (`repeat()`, [docs/admission.md](docs/admission.md)) shows
+what is actually at stake. At `reuse=1.0` the oracle finds **22 tools that genuinely
+clear break-even**; LRU-K finds 1 of them while buying 61 that do not. That gap is the
+entire value of layer B, and closing it is a prediction problem. The honest scope claim
+is: **layer A (drop the schemas) is where the money is today, and layer B is gated on a
+rate estimator that is calibrated rather than merely ordered correctly.**
+
+The week-4 predictor ablation inherits this and is now the load-bearing experiment. On
+qwen the hot set is empty for all four predictors, so oracle, ensemble, markov and LRU-K
+emit byte-identical plans and are indistinguishable (p >= 0.163) — a null by
+construction, not evidence of parity. The comparison only becomes measurable on Haiku,
+under reuse, where the oracle has 22 admissions of headroom to compete for.
 
 ## Layout
 

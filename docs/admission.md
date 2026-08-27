@@ -202,3 +202,57 @@ in a session that already called it — so phrasing varies, ground truth stays e
 trustworthy as the suite it came from, and the session's own working set deepens rather
 than widens. At `reuse=1.0` peak uses per 50-turn horizon goes 4 → 9, clearing `n*` for
 the first time in the project.
+
+## The forecast, not the price, is what loses the money
+
+Admission fires on Haiku and loses. Two hypotheses fit that: the break-even rule is
+wrong, or the rule is right and the predictor feeds it bad rates. `scripts/calibration.py`
+separates them offline, at zero cost — the decision is a pure function of the trace, so
+no model has to be called. For every tool the controller admits it records the uses the
+predictor promised over the horizon against the uses the trace actually delivered in the
+same 50-turn window, and swaps in `Oracle` to get the upper bound.
+
+`uv run python scripts/calibration.py haiku`, 300 tools, held-out suite:
+
+| reuse | peak/50 | predictor | admitted | predicted | actual | over-forecast | earned their schema |
+|---|---|---|---|---|---|---|---|
+| 0.0 | 4 | lru-k | 32 | 417.4 | 19 | 22.0x | **0 / 32** |
+| 0.0 | 4 | oracle | 0 | 0.0 | 0 | — | 0 / 0 |
+| 1.0 | 9 | lru-k | 62 | 1322.7 | 70 | 18.9x | 1 / 62 |
+| 1.0 | 9 | oracle | 22 | 116.0 | 116 | 1.0x | **22 / 22** |
+| 3.0 | 11 | lru-k | 66 | 1574.1 | 132 | 11.9x | 5 / 66 |
+| 3.0 | 11 | oracle | 28 | 178.0 | 178 | 1.0x | 28 / 28 |
+
+`earned` is scored against the floor threshold `T·c/u` = 5 uses, which only holds while
+the hot set is empty; admitting raises the bar for everything after. So `earned` is an
+upper bound on admissions that paid, and the true count is lower still.
+
+Three things fall out.
+
+**The economics are sound and the flat workload is genuinely inadmissible.** At
+`reuse=0.0` the oracle — which counts the future directly — admits *nothing*. There is no
+tool in the 310-turn suite whose real call rate clears 10%. The measured −6.1pt strict
+and +22% cost against `index-only` is therefore not the price of cache-awareness. It is
+32 admissions that a perfect forecaster would have declined, each one invalidating the
+prefix and never repaying the rewrite.
+
+**LRU-K over-forecasts by an order of magnitude, and does so structurally.**
+`expected_uses = horizon · (k/span) · confidence` reads a backward K-distance as a rate
+and extrapolates it linearly across the horizon. Two calls three turns apart imply 33
+uses over 50 turns against a threshold of 5. Bursts are exactly what a five-turn session
+produces, so the estimator's failure mode is aligned with the workload's shape rather
+than random — which is why the error survives a 22x margin and does not average out over
+310 turns.
+
+**There is real headroom, and the current predictor cannot reach it.** At `reuse=1.0`
+the oracle finds 22 tools that genuinely clear break-even; LRU-K finds 1 of them while
+buying 61 that do not. The gap between those two rows is the entire value proposition of
+layer B, and it is a prediction problem, not a caching one. That makes the week-4
+predictor ablation the load-bearing experiment: a rate estimator that is merely
+*calibrated* — even a poor one, so long as it is not biased 19x high — should recover
+most of the oracle's 22 without needing to be accurate about which tools they are.
+
+The `over-forecast` column for the oracle is 1.0x by construction: it counts the same
+window it predicts. The informative column there is `admitted` — 0 → 22 → 28 across
+reuse rates, which measures how much the workload leaves on the table before any
+predictor is chosen.
