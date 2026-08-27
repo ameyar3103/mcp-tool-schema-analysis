@@ -132,3 +132,30 @@ not, and the shipped LRU-K predictor is over-admitting relative to its own econo
   comparisons of this table as unsupported.
 - Twin provenance covers synthetic distractors only. Genuine near-duplicates between two
   real MCP servers are scored strictly, so the lenient column is a lower bound.
+
+## Replication: how much of a gap is just sampling?
+
+Two sweeps ran the identical configuration — qwen-flash, corpus v2, 300 tools, skew 0,
+no reuse — under different salts (`97b45e2a`, `421efa26`). Nothing differed but the run
+nonce and the provider's sampling:
+
+| arm | run A | run B | delta | McNemar p |
+|---|---|---|---|---|
+| full-catalog | 57.7% | 59.0% | +1.3 | 0.7122 |
+| hotset | 61.9% | 61.3% | −0.6 | 0.8555 |
+| **index-only** | 54.5% | 49.7% | **−4.8** | 0.0959 |
+| lazy-discovery | 61.9% | 60.3% | −1.6 | 0.5831 |
+| rag-over-tools | 52.3% | 51.3% | −1.0 | 0.7660 |
+| static-hot-set | 58.1% | 56.1% | −1.9 | 0.5446 |
+
+Five of six arms replicate within 2 points. One moved 4.8 — larger than the 4.0%
+detection floor that the same table quotes for distinguishing two *arms*. The two
+quantities are not the same thing: the floor describes a paired within-run comparison,
+and this is between-run stability of one arm under resampling.
+
+The cause was that `pinned_body()` never set `temperature`, so every request used the
+provider default. It is pinned to 0 now, which removes our contribution to the variance
+but not the provider's. **Every sweep reported in this repo predates that pin**, so read
+single-run gaps of roughly 5 points or less as provisional, including the −6.1pt strict
+result for `hotset` against `index-only` on Haiku. Gaps established at p<0.001 across
+hundreds of discordant pairs are not at risk; the marginal ones are.

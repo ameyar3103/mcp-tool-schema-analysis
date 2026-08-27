@@ -106,13 +106,17 @@ def post(body: dict, attempts: int = 5) -> dict:
 
 
 def pinned_body(spec: ModelSpec, **overrides) -> dict:
-    """Request skeleton with the provider pin and reasoning already settled."""
+    """Request skeleton with the provider pin, sampling and reasoning already settled."""
     return {
         "model": spec.slug,
         "max_tokens": 16,
         "provider": {"only": [spec.provider], "allow_fallbacks": False},
         "usage": {"include": True},
         "reasoning": {"enabled": False},
+        # Unpinned, two runs of one arm on an identical config differed by 4.8 points --
+        # more than the 4.0% detection floor, so sampling noise alone could reverse a
+        # ranking. Greedy decoding does not remove provider nondeterminism, only ours.
+        "temperature": 0,
         **overrides,
     }
 

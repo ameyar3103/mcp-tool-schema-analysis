@@ -128,6 +128,11 @@ target's twin was identical across both runs. Twin confusion rose for all six ar
 the sign of the strict change is not even consistent: `full-catalog` gained 3.2 points
 over the same treatment. See [docs/corpus.md](docs/corpus.md).
 
+**Single-run gaps of ~5 points are provisional.** Two sweeps of an identical config
+under different salts agreed within 2 points on five of six arms and differed by 4.8 on
+the sixth — above the detection floor. `temperature` went unpinned until after every
+sweep reported here; it is 0 now. Gaps at p<0.001 are unaffected, marginal ones are not.
+
 **Every ranking carries its detection floor.** Under paired McNemar, power depends on
 discordant pairs rather than sample size; at n=310 the minimum detectable gap is 4.0%.
 The Pareto frontier is built on statistical dominance, and because "not significantly

@@ -89,12 +89,13 @@ def main(
         print(f"\nhot set at end ({len(arms[-1].hot)}): {[t.name for t in arms[-1].hot]}")
 
 
+USAGE = "usage: run_week3.py [model] [size] [version] [skew] [reuse]"
+
 if __name__ == "__main__":
-    opts = {}
-    if len(sys.argv) > 2:
-        opts["size"] = int(sys.argv[2])
-    if len(sys.argv) > 3:
-        opts["version"] = int(sys.argv[3])
-    if len(sys.argv) > 4:
-        opts["skew"] = float(sys.argv[4])
-    main(*(sys.argv[1:2] or []), **opts)
+    # Positional and typed in order. An extra argument is an error rather than ignored:
+    # a silently dropped `reuse` bought a full sweep of the workload it meant to replace.
+    casts = [str, int, int, float, float]
+    if len(sys.argv) - 1 > len(casts):
+        raise SystemExit(USAGE)
+    names = ["model", "size", "version", "skew", "reuse"]
+    main(**{n: c(v) for n, c, v in zip(names, casts, sys.argv[1:])})
