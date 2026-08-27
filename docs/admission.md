@@ -171,3 +171,34 @@ full catalog, per half, with Fisher exact; every arm comes back flat (p ≥ 0.36
 > `hashlib.blake2b` and a subprocess regression test; both sweeps above were re-run on
 > the stable split at n=310. The break-even table was never affected — `n*` depends on
 > token counts and prices, not on which turns were held out.
+
+## Server-level skew cannot test admission, structurally
+
+Every sweep above ran at `skew=0`, and the obvious repair — turn the skew knob up — does
+not work. `trace()` weights arrivals per *server*, on the reasoning that a team adopts a
+server and then uses all of it. But admission is priced per *tool*, and using all of a
+server is still uniform at the tool level:
+
+| skew | top-5 share | peak uses / 50 turns | busiest tool's rate | clears n*≈8 |
+|---|---|---|---|---|
+| 0.0 | 17.4% | 4 | 3.9% | no |
+| 1.0 | 20.6% | 6 | 5.2% | no |
+| 2.0 | 26.1% | 6 | 6.8% | no |
+| 4.0 | 33.9% | 7 | 8.4% | no |
+
+It saturates below the bar. The ceiling is structural: the harvested servers hold 13, 14,
+12 and 24 tools, so even routing *100%* of traffic to `filesystem` puts its busiest tool
+at 12.7% of turns, and to `git` at 15.1%. Asymptotically a tool earns its schema when its
+call rate clears `c/u` — 10% on Haiku — so server skew brushes the bar only at infinite
+concentration, and never reaches it in practice.
+
+The missing variable is within-session tool reuse, which the frozen suite has almost
+none of: **2 of 124 sessions repeat any tool.** The generation prompt asks for varied
+servers and never asks for repetition, so every session is five distinct tools.
+
+`repeat()` supplies it without inventing labels. A repeat turn is an existing labeled
+turn from elsewhere in the suite that calls the same tool, inserted at a random position
+in a session that already called it — so phrasing varies, ground truth stays exactly as
+trustworthy as the suite it came from, and the session's own working set deepens rather
+than widens. At `reuse=1.0` peak uses per 50-turn horizon goes 4 → 9, clearing `n*` for
+the first time in the project.

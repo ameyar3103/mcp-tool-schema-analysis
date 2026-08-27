@@ -12,7 +12,7 @@ from hotset.eval.runner import run_arm, save, summarize
 from hotset.eval.spans import Recorder
 from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
-from hotset.eval.workload import concentration, trace
+from hotset.eval.workload import concentration, repeat, trace
 from hotset.policy.adaptive import HotSet
 from hotset.policy.baselines import (
     FullCatalog,
@@ -34,12 +34,20 @@ HORIZON = 50
 
 
 def main(
-    model: str = "qwen-flash", size: int = 300, version: int = 2, skew: float = 0.0
+    model: str = "qwen-flash",
+    size: int = 300,
+    version: int = 2,
+    skew: float = 0.0,
+    reuse: float = 0.0,
 ) -> None:
     spec = MODELS[model]
     base = load()
     catalog = base if size == len(base) else pad_catalog(base, size, seed=0, version=version)
     train, test = split(load_tasks())
+    if reuse:
+        # Tool-level reuse, which server skew cannot produce: admission is priced per
+        # tool, so a per-tool call rate is the only thing that can clear n*.
+        test = repeat(test, rate=reuse, seed=0)
     if skew:
         # Same questions, different arrival mix: isolates workload concentration from
         # task difficulty, which a freshly generated skewed suite could not.
@@ -60,11 +68,11 @@ def main(
     ]
     print(
         f"{model} | catalog {len(catalog)} | test {len(test)} sessions "
-        f"({sum(len(s.turns) for s in test)} turns) | skew {skew} "
+        f"({sum(len(s.turns) for s in test)} turns) | skew {skew} reuse {reuse} "
         f"| top5 {concentration(test)[0]:.1%} peak/50 {concentration(test)[1]} | salt {salt}\n\n{HEAD}"
     )
     for arm in arms:
-        tag = f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}-{salt}"
+        tag = f"{arm.name}-{model}-{len(catalog)}v{version}s{skew:g}r{reuse:g}-{salt}"
         rec = Recorder(arm.name, spec.slug)  # traces answer "did it degrade mid-run"
         results = run_arm(arm, spec, catalog, test, salt=salt, recorder=rec)
         save(results, tag)
