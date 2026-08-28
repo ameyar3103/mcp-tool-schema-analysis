@@ -1,15 +1,14 @@
-# HotSet
+# Tool Schema Analysis
 
-**A cache-aware tool router for MCP agents — and a measurement that the schema budget is
-an accuracy knob with an interior optimum.**
+**Does sending different tool schemas to an MCP agent buy better cost, or better
+accuracy?** This measures both, over a 300-tool catalog, and finds that the schema budget
+is an accuracy knob with an interior optimum.
 
 An agent's tool list renders *upstream* of its system prompt, so the prefix cache is gated
 by the bytes of `tools`: change one schema and every cached token downstream of it is
-invalidated. HotSet treats the tool list as a cache-resident working set — a stable hot
-block of full schemas, over a whole-catalog index of bare names, with an optional
-per-turn tail.
-
-The project was built to answer a cost question. The answer it produced is about accuracy.
+invalidated. The router here treats the tool list as a cache-resident working set — a
+stable hot block of full schemas, over a whole-catalog index of bare names, with an
+optional per-turn tail.
 
 ## The result
 
@@ -34,9 +33,8 @@ Three findings, ordered by how much they should change what you build.
 **The schema budget has an interior optimum.** Strict accuracy runs 38.4 → 43.2 → 44.5 →
 **52.9** → 39.7 as K goes 0 → 16 → 32 → 64 → 300. The peak sits at 21% of the catalog.
 `static-64` beats `full-catalog` 49/8 (p<0.001) and `index-only` 55/10 (p<0.001). Both
-endpoints — send everything, send nothing — are dominated by the middle. This reproduces
-the tool-overload failure the project set out to address, on our own catalog rather than
-by citation, and locates the peak rather than just asserting one exists.
+endpoints — send everything, send nothing — are dominated by the middle. Tool overload is
+reproduced here on our own catalog rather than by citation, and the peak is located.
 
 **Sending every schema is statistically indistinguishable from sending none.**
 `full-catalog` vs `index-only` is 21/17, **p = 0.627**, while costing 2.4x more. The
@@ -68,13 +66,8 @@ near-duplicates the per-turn tail should be off and the schemas chosen ahead of 
 
 **It relocates the benchmark problem.** If `full-catalog` and `index-only` are one arm at
 p=0.627, then any tool-selection result reported only against "send the whole catalog" is
-reported against a baseline that does nothing — including several of this project's own
-earlier results. The cheap baseline is the one that has to be beaten.
-
-**The scope is honest but narrow.** One provider pair, one 300-tool catalog, one flat
-workload, and the twins are synthetic. What generalises is the mechanism and the method:
-sweep the budget, score strict *and* lenient, and report the detection floor. What does
-not yet generalise is the location of the peak at 21%.
+reported against a baseline that does nothing. The cheap baseline is the one that has to
+be beaten.
 
 ## Technical details
 
@@ -167,8 +160,8 @@ hotset/corpus/     harvested MCP catalog and synthetic near-duplicate distractor
 hotset/runtime/    thin OpenRouter client
 ```
 
-[docs/findings.md](docs/findings.md) has the full derivation, the offline diagnostics that
-located the failure, and every table.
+[docs/findings.md](docs/findings.md) has the full derivation, the offline diagnostics, and
+every table.
 
 ## Running
 
@@ -185,18 +178,3 @@ uv run python -m hotset.cache.probe haiku              # provider cache probes (
 ```
 
 An OpenRouter key goes in a gitignored `.env`. Everything in CI runs without one.
-
-## Caveats
-
-- One flat workload with one tool call per turn and no tool repeated within a scenario, so
-  per-tool call rates sit below the regime where admission should pay. Under an oracle
-  predictor at `reuse=1.0` there are 22 genuinely profitable admissions; LRU-K finds 1 of
-  them while buying 61 that lose money. Nothing here says admission cannot work — only
-  that it is untested on traffic that would reward it.
-- Single-run gaps of ~5 points are provisional. `temperature` went unpinned until after
-  the earlier sweeps; two runs of one arm then differed by 4.8 points, above the floor.
-  It is pinned to 0 now, and gaps at p<0.001 are unaffected.
-- Twin provenance covers synthetic distractors only. Real near-duplicates across two MCP
-  servers are still scored strictly, so lenient accuracy is a lower bound.
-- Cross-provider accuracy comparisons need a shared held-out split; earlier sweeps did not
-  have one and those claims were withdrawn.

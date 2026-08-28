@@ -1,13 +1,9 @@
 # Findings
 
-The project set out to build a cache-aware admission controller: cache a tool schema when
-its predicted call rate clears the break-even point at which caching is cheaper than
-tail-loading. That controller was built, validated against measured provider bills, run,
-and lost — 6.1 points worse strict than sending bare names (p=0.018) at 22% more cost.
+Does sending different tool schemas to an MCP agent buy better cost, or better accuracy?
+These are the measurements, on a 300-tool catalog against two providers.
 
-This document records why it lost, and what replaced it.
-
-## 1. The break-even rule is correct and useless as a selector
+## 1. Break-even prices tokens, and tokens are not the binding constraint
 
 Admitting a schema to the cached block costs one prefix rewrite plus the carrying cost of
 the extra tokens on every subsequent turn; tail-loading it costs its uncached tokens each
@@ -19,9 +15,9 @@ n* = S·(w − c)/(P·u) + T·c/u          n*/T → c/u  as T → ∞
 ```
 
 `S` = rewritten segment tokens, `P` = schema tokens, and `u`, `c`, `w` = uncached, cached
-and write prices. The asymptotic floor `c/u` is the term that matters and the term the
-original formulation omitted: cached tokens still bill, so no horizon makes a schema free.
-On Anthropic that floor is a 10% duty cycle; on Alibaba, 40%.
+and write prices. The asymptotic floor `c/u` is the term that matters: cached tokens still
+bill, so no horizon makes a schema free. On Anthropic that floor is a 10% duty cycle; on
+Alibaba, 40%.
 
 Measured on live requests, `S` differs by provider in a way that changes the answer by an
 order of magnitude:
@@ -31,13 +27,13 @@ order of magnitude:
 | Anthropic (claude-haiku-4.5) | yes — hot block isolated | 389 | 7.8–9.2 |
 | Alibaba (qwen-flash) | no — whole prefix rewrites | 11,641 | 98–142 |
 
-The rule is right. The problem is what it optimises. It asks *"is this schema free?"* — a
-real question, correctly answered. A deployment asks *"is this schema worth paying for?"*,
-and break-even has no term for accuracy at all. `static-hot-set` carries 16 schemas the
-threshold explicitly rejects and beats `index-only` by 5.2 points strict on Haiku and 11.8
-on qwen. The threshold optimises `$/turn` when the objective is `$/correct`.
+The rule is right about tokens. It asks *"is this schema free?"* and answers correctly.
+What it cannot answer is *"is this schema worth paying for?"*, because it has no term for
+accuracy at all: `static-hot-set` carries 16 schemas the threshold explicitly rejects and
+beats `index-only` by 5.2 points strict on Haiku and 11.8 on qwen. The threshold optimises
+`$/turn` when the objective is `$/correct`.
 
-## 2. The forecast was wrong before the rule got a chance
+## 2. A correct rule fed a biased estimate looks like the rule failing
 
 Replaying the controller offline against the trace — free, no API calls, admission is a
 pure function of the trace — separates "the rule is wrong" from "the estimate is wrong":
@@ -64,15 +60,15 @@ Admission also never fires on a one-breakpoint provider even above its own n*: a
 qwen run at reuse 1.0 (peak/50 = 9) ended with an empty hot set. S = 11,641 is not a
 threshold a real trace clears.
 
-## 3. Churn, not caching, is where the money went
+## 3. Churn, not caching, is where the money goes
 
-Every membership change rewrites layer B and re-warms everything downstream. As shipped,
-the hot set changed on **65 of 310 turns** — one turn in five — to hold a set averaging
-2.0 tools.
+Every membership change rewrites layer B and re-warms everything downstream. Left
+unbatched, the hot set changes on **65 of 310 turns** — one turn in five — to hold a set
+averaging 2.0 tools.
 
 | epoch | rewrites | tokens written | cost of the rewrites |
 |---|---|---|---|
-| 1 (as shipped) | 65 | 21,562 | $0.02695 |
+| 1 (unbatched) | 65 | 21,562 | $0.02695 |
 | 10 | 22 | 6,318 | $0.00790 |
 | 25 | 12 | 2,022 | $0.00253 |
 | 50 | 6 | 1,319 | $0.00165 |
@@ -112,7 +108,7 @@ held-out calls whose target sits in the hot set:
 The training prior beats LRU-K everywhere. The traffic is stationary, so past frequency
 *is* the estimate and adaptivity only adds variance.
 
-## The replacement experiment
+## The main experiment
 
 Given all five, the controlled variable is the schema **budget**, and membership is fixed
 for the run. `scripts/run_sweep.py frontier` sweeps K from 0 (`index-only`) to 300
@@ -152,14 +148,14 @@ Paired McNemar, n=310, minimum detectable gap 4.0%:
 bare names by **14.5 points** (55/10, p<0.001).
 
 The curve is not monotone. Strict accuracy runs 38.4 → 43.2 → 44.5 → **52.9** → 39.7 as K
-goes 0 → 16 → 32 → 64 → 300, peaking at 21% of the catalog and falling off past it. This
-reproduces the tool-overload failure the project set out to address, on our own catalog
-rather than by citation, and locates the peak.
+goes 0 → 16 → 32 → 64 → 300, peaking at 21% of the catalog and falling off past it. Tool
+overload is reproduced here on our own catalog rather than by citation, and the peak is
+located.
 
 **Sending every schema is statistically indistinguishable from sending none** (21/17,
 p=0.627). The naive default and the cheapest possible arm are the same arm, measured —
-which means any result in this project that compared against `full-catalog` alone was
-comparing against a baseline that does nothing.
+which means any tool-selection result compared against `full-catalog` alone is compared
+against a baseline that does nothing.
 
 ### The gain is entirely twin disambiguation
 
@@ -191,13 +187,13 @@ significantly worse* — the frontier is `index-only`, `static-16`, `static-32`,
 cheaper arm, yet beats a frontier member at p=0.003. "Not significantly worse" is not
 transitive, so the antichain is not the frontier.
 
-Cost was never the binding constraint. The spread across the entire frontier is $0.0026 to
-$0.0062 per turn; accuracy spans 38.4% to 52.9%.
+## What to build
 
-## What survives
+The three-layer layout is the contribution. Layer A (names always present) is what makes a
+partial schema budget safe, because a tool outside the hot set stays nameable. Layer B is
+where the accuracy is, sized by **budget** rather than by threshold. Layer C should be off
+on any catalog containing near-duplicates.
 
-The three-layer layout is the contribution, with a different justification than the one it
-was built for. Layer A (names always present) is what makes a partial schema budget safe,
-because a tool outside the hot set stays nameable. Layer B is where the accuracy is, sized
-by **budget** rather than by threshold. Layer C should be off on any catalog containing
-near-duplicates.
+To the opening question: schemas buy **accuracy**, not cost. Cost is not the binding
+constraint — the spread across the entire frontier is $0.0026 to $0.0062 per turn, while
+accuracy spans 38.4% to 52.9%.

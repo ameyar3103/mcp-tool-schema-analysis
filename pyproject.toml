@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hotset"
 version = "0.1.0"
-description = "Cache-aware tool router for MCP agents: admission control over prompt-prefix tool schemas"
+description = "Analysis of how tool-schema budget in the prompt prefix affects agent cost and accuracy"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2",     # typed tool schemas + span records
