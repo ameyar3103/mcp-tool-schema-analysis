@@ -35,7 +35,7 @@ def rewritten_segment(spec: ModelSpec, head_tokens: int, hot_tokens: int) -> int
     """What admission actually invalidates.
 
     Layer B alone where the provider honours a second breakpoint; the entire prefix
-    where it does not. This single branch moves break-even by ~9.5x (see Q7).
+    where it does not. This single branch moves break-even by ~9.5x.
     """
     return hot_tokens if spec.cache_breakpoints > 1 else head_tokens + hot_tokens
 

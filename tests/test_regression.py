@@ -58,7 +58,7 @@ def test_threshold_falls_toward_the_price_ratio():
 
 
 def test_a_flat_workload_admits_nothing_even_with_the_future():
-    """The week 4 result, pinned. Only a genuine economics change should move this."""
+    """Pinned break-even values. Only a genuine economics change should move this."""
     catalog = pad_catalog(CATALOG, 200, seed=0)
     future = ["read_file", "git_add", "browser_click", "search_nodes"] * 20
     policy = HotSet(HAIKU, Oracle(future), horizon=len(future))

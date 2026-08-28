@@ -14,5 +14,5 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pytest -q
       # Admission decisions are a pure function of tokens and prices, so drift in the
-      # controller is catchable without spending a cent.
-      - run: uv run python scripts/simulate_admission.py haiku 300 2 0
+      # without spending a cent.
+      - run: uv run python scripts/calibration.py haiku 300 2

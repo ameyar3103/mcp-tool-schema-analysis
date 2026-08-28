@@ -1,7 +1,7 @@
 """Labeled task suite: multi-turn scenarios with a ground-truth tool per turn.
 
 Sessions rather than isolated queries, for two reasons: a single turn cannot exhibit
-cache reuse, and the week-4 Markov predictor needs tool sequences to mine. Generated
+cache reuse, and the Markov predictor needs tool sequences to mine. Generated
 once by a strong model, then frozen to JSON so every arm sees identical inputs.
 """
 

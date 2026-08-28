@@ -1,13 +1,9 @@
 """Pareto frontier over cost and accuracy, with dominance decided statistically.
 
-The week-2 version of this script ranked arms on raw accuracy, which quietly asserts
-that a 1.3-point difference is real. At this suite size it is not: the minimum
-detectable gap is around 4 points, so most "wins" are noise wearing a decimal point.
-
-Here an arm is dominated only when something cheaper is *not significantly worse* under
-paired McNemar. That puts the burden of proof on the accuracy claim rather than on the
-cost claim, which is the correct direction for a paper whose thesis is about cost: a
-cheaper arm has to be shown to have lost something before it is dropped.
+Ranking on raw accuracy asserts that a 1.3-point gap is real. At this suite size it is
+not: the minimum detectable gap is about 4 points. So an arm is dominated only when
+something cheaper is *not significantly worse* under paired McNemar, which puts the
+burden of proof on the accuracy claim rather than on the cost claim.
 """
 
 from __future__ import annotations
@@ -20,7 +16,9 @@ from pathlib import Path
 from hotset.eval.runner import TurnResult
 from hotset.eval.significance import mcnemar, minimum_detectable, outcomes, wilson
 
-RESULTS = Path(__file__).resolve().parents[1] / "results"
+ROOT = Path(__file__).resolve().parents[1]
+RESULTS = ROOT / "results"
+ASSETS = ROOT / "docs" / "assets"
 ALPHA = 0.05
 
 
@@ -114,7 +112,7 @@ def inversions(arms: dict, paired: dict, best: set[str], alpha: float = ALPHA) -
 
 
 def naive_frontier(arms: dict) -> set[str]:
-    """The week-2 rule, kept only to show what significance testing removes."""
+    """Raw cost/accuracy dominance, kept only to show what significance testing removes."""
     return {
         a
         for a in arms
@@ -182,8 +180,9 @@ def plot(arms: dict, best: set[str], out: str) -> None:
     ax.set_title("Tool routing Pareto frontier (bars: 95% Wilson CI)")
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    fig.savefig(RESULTS / out, dpi=150)
-    print(f"wrote {RESULTS / out}")
+    ASSETS.mkdir(parents=True, exist_ok=True)
+    fig.savefig(ASSETS / out, dpi=150)
+    print(f"wrote {ASSETS / out}")
 
 
 def main(salt: str, out: str = "pareto.png", lenient: bool = False) -> None:

@@ -1,4 +1,4 @@
-"""The replay behind docs/corpus.md: twin visibility, counted without calling a model."""
+"""Twin visibility in the assembled prompt, counted without calling a model."""
 
 import sys
 from pathlib import Path

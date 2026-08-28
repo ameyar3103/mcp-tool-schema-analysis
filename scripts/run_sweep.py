@@ -1,21 +1,4 @@
-"""How big should the cached hot set be? The schema-budget frontier.
-
-Week 3 asked whether a tool clears break-even. That is the wrong selector, for two
-reasons the offline replay makes plain:
-
-  - Break-even prices tokens under the assumption that a tail-load substitutes for a
-    cached schema. It does not. `static-hot-set` carries 16 schemas the threshold would
-    reject and still beats `index-only` by 5.2 points strict, so a schema buys accuracy
-    the cost model has no term for.
-  - LRU-K adaptivity is a liability on stationary traffic. At a matched budget its hot
-    set covers the called tool less often than a plain train-frequency ranking does
-    (20.3% vs 27.7% at K=16; 75.8% vs 90.6% at K=64).
-
-So the controlled variable here is the *budget*, not the threshold: sweep K from 0
-(`index-only`) to 300 (`full-catalog`) with membership fixed for the whole run, and put
-the adaptive arm at the best budget to test whether adaptivity earns anything at all.
-Train-frequency coverage of the held-out calls is 14.8/27.7/55.2/90.6% at K=8/16/32/64.
-"""
+"""Paid sweep. `frontier` walks the schema budget K; `baselines` runs the reference policies."""
 
 from __future__ import annotations
 
@@ -32,7 +15,14 @@ from hotset.eval.tasks import load as load_tasks
 from hotset.eval.tasks import split
 from hotset.eval.workload import concentration, repeat
 from hotset.policy.adaptive import HotSet
-from hotset.policy.baselines import FullCatalog, IndexOnly, StaticHotSet, frequency_hot_set
+from hotset.policy.baselines import (
+    FullCatalog,
+    IndexOnly,
+    LazyDiscovery,
+    RagOverTools,
+    StaticHotSet,
+    frequency_hot_set,
+)
 from hotset.policy.predictors import LRUK, warm
 
 HEAD = (
@@ -43,6 +33,7 @@ HORIZON = 50
 
 
 def main(
+    suite: str = "frontier",
     model: str = "haiku",
     size: int = 300,
     version: int = 2,
@@ -62,25 +53,36 @@ def main(
         return arm
 
     def adaptive(budget: int) -> HotSet:
-        """Matched budget, so any gap is the predictor and not the token spend."""
         predictor = LRUK(k=2)
         warm(predictor, ([t.tool for t in s.turns] for s in train))
-        # tail_k=0: BM25 top-3 puts a twin's full schema in the prompt on 98% of turns
-        # and the target's on 37%, so on a twin-padded catalog layer C feeds the impostor.
+        # tail_k=0: BM25 top-3 shows a twin's schema on 98% of turns, the target's on 37%.
         arm = HotSet(spec, predictor, horizon=HORIZON, epoch=HORIZON, tail_k=0, budget=budget)
         arm.name = f"adaptive-{budget}"
         return arm
 
-    arms = [
-        IndexOnly(),  # K=0, the floor
-        static(16),
-        static(32),
-        static(64),
-        adaptive(64),  # same budget as static-64; isolates prediction from spend
-        FullCatalog(),  # K=300, the ceiling
-    ]
+    suites = {
+        "frontier": lambda: [
+            IndexOnly(),
+            static(16),
+            static(32),
+            static(64),
+            adaptive(64),  # matched budget, so any gap is the predictor and not the spend
+            FullCatalog(),
+        ],
+        "baselines": lambda: [
+            FullCatalog(),
+            RagOverTools(),
+            LazyDiscovery(),
+            IndexOnly(),
+            static(64),
+        ],
+    }
+    if suite not in suites:
+        raise SystemExit(f"unknown suite {suite!r}; pick one of {sorted(suites)}")
+    arms = suites[suite]()
+
     print(
-        f"{model} | catalog {len(catalog)} | test {len(test)} sessions "
+        f"{suite} | {model} | catalog {len(catalog)} | test {len(test)} sessions "
         f"({sum(len(s.turns) for s in test)} turns) | reuse {reuse} "
         f"| peak/50 {concentration(test)[1]} | salt {salt}\n\n{HEAD}"
     )
@@ -108,11 +110,11 @@ def main(
             print(f"{c.a:22} vs {c.b:22} {c.a_only:3}/{c.b_only:<3} p={c.p_value:.3f}{mark}")
 
 
-USAGE = "usage: run_week5.py [model] [size] [version] [reuse]"
+USAGE = "usage: run_sweep.py [frontier|baselines] [model] [size] [version] [reuse]"
 
 if __name__ == "__main__":
-    casts = [str, int, int, float]
+    casts = [str, str, int, int, float]
     if len(sys.argv) - 1 > len(casts):
         raise SystemExit(USAGE)
-    names = ["model", "size", "version", "reuse"]
+    names = ["suite", "model", "size", "version", "reuse"]
     main(**{n: c(v) for n, c, v in zip(names, casts, sys.argv[1:])})

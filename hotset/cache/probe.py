@@ -1,4 +1,4 @@
-"""Week-1 gate: prove cache behaviour is observable before building any policy on it.
+"""Gate: prove cache behaviour is observable before building any policy on it.
 
 Every number downstream is unfalsifiable until these pass, so they run first.
 """

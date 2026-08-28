@@ -1,4 +1,4 @@
-"""Grow the frozen task suite until it can resolve the gaps week 4 needs to measure.
+"""Grow the frozen task suite until it can resolve the gaps the ablations need to measure.
 
 At 195 turns the suite's minimum detectable accuracy gap is 7.2%, which is wider than
 any predictor ablation is expected to move. Power under McNemar scales with discordant

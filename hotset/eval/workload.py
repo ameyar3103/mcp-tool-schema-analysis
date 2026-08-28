@@ -1,14 +1,8 @@
 """Compose an evaluation trace from the frozen suite under a controllable skew.
 
-The suite is deliberately diverse: its generation prompt asks for varied servers, so
-every tool appears a handful of times and no tool is ever hot. That is a legitimate
-condition, but it is the pathological one, not the representative one — real MCP
-deployments concentrate on a couple of servers and a handful of tools.
-
-Skew is therefore an independent variable rather than a property of the corpus. The
-same sessions are replayed under different arrival distributions, which isolates
-workload concentration from task difficulty: the questions are identical, only how
-often each kind arrives changes.
+The frozen suite is deliberately diverse, so no tool is ever hot. Skew is an independent
+variable rather than a property of the corpus: the same sessions replayed under different
+arrival distributions isolate workload concentration from task difficulty.
 """
 
 from __future__ import annotations

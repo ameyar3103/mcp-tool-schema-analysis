@@ -1,8 +1,4 @@
-"""Predictors: estimate how often a tool will be called over the next few turns.
-
-They return an expected *count*, not a rank. The admission controller compares that
-count against a break-even threshold, which a bare ordering cannot answer.
-"""
+"""Predictors return an expected call *count*, not a rank: break-even needs a number."""
 
 from __future__ import annotations
 
@@ -12,9 +8,8 @@ from collections import defaultdict
 class LRUK:
     """Recency and frequency in one number, via the LRU-K backward K-distance.
 
-    A tool called K times within the last D turns is firing at roughly K/D per turn,
-    so its expected uses over a horizon are horizon*K/D. Tools seen fewer than K
-    times get a damped estimate: one sighting is weak evidence of a rate.
+    K hits in the last D turns reads as a rate of K/D. Fewer than K sightings are
+    damped, since one call is weak evidence of a rate.
     """
 
     name = "lru-k"
@@ -57,15 +52,9 @@ class LRUK:
 class Rate:
     """Decayed call rate over the whole observation window, shrunk toward zero.
 
-    LRU-K estimates a rate as k/span, where span is the shortest recent window holding
-    k hits. That denominator is *selected to be small*: it conditions on a burst and
-    then extrapolates the burst across the horizon, which over-forecasts by ~20x on
-    bursty traffic. Dividing by every turn actually watched removes the selection.
-
-    Decay keeps it responsive -- a tool hot fifty turns ago should not hold a schema
-    forever -- and `prior` pseudo-turns of zero-evidence shrinkage stop a tool's first
-    call from implying a rate at all. Admission is asymmetric: a false admit rewrites
-    the prefix, a false decline costs one tail-load.
+    LRU-K divides by the shortest window holding k hits, a denominator selected to be
+    small; dividing by every turn watched removes that selection bias. `prior` stops a
+    first call from implying a rate, and decay stops an old burst from holding a schema.
     """
 
     name = "rate"
@@ -101,13 +90,8 @@ class Rate:
 class Markov:
     """First-order transitions blended into the marginal rate as context decays.
 
-    LRU-K knows a tool is hot but not what follows what. This one does, and that is
-    the whole difference: after `read_file` the next call is far more likely to be
-    `edit_file` than the base rate implies.
-
-    A transition only predicts the very next turn. Past it the chain mixes back toward
-    the marginal, so the horizon sum weights the transition by `decay**t` rather than
-    pretending one edge governs fifty turns.
+    LRU-K knows a tool is hot but not what follows what. An edge only predicts the very
+    next turn, so the horizon sum weights it by `decay**t` as the chain mixes back.
     """
 
     name = "markov"
@@ -202,10 +186,8 @@ def warm(predictor, sequences) -> None:
 
 
 class Oracle:
-    """Upper bound: counts the future directly. Not deployable, and not meant to be.
-
-    Without it an ablation cannot separate "the predictor is weak" from "admission
-    never pays at these prices", because both show up as an empty hot set.
+    """Upper bound: counts the future directly. Separates a weak predictor from a
+    workload with nothing to admit -- both otherwise show up as an empty hot set.
     """
 
     name = "oracle"

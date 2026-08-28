@@ -11,7 +11,7 @@ from hotset.policy.base import Plan
 _INTRO = "You are a tool-using assistant."
 
 # Layers A and B render as system text, never the native tools field: only text
-# blocks honour a cache breakpoint on OpenRouter (see docs/week1-findings.md).
+# blocks honour a cache breakpoint on OpenRouter.
 _GUIDE_INDEX = """CATALOG lists every tool available to you, one per line, as
 `name(arg, optional?) - summary`. SCHEMAS gives full parameter detail for the
 tools you are most likely to need. If a CATALOG tool you need is absent from
